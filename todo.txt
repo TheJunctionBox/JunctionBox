@@ -1,0 +1,35 @@
+TODO:
+
+    Persist favourites
+    
+    Clear the favourite LED when in the intro
+
+Export favourites
+
+A display button to cycle through display options:
+    just artist & track & status if paused / stopped
+    + track number & elapsed episode time
+    + elapsed track time
+    + remaining time in track
+    + episode
+    
+Save location when quitting on paus
+
+Create "heard" field and persist
+
+Separate segment download from parsing
+
+Put extra fields in at the parsing stage
+
+Fix the always seeking bug
+
+fix the pausing bug
+
+create a while True main loop (around the current while loop)
+
+Find a way to show the "2/18" when navigating without it being instantly overwritten by the track name. 
+
+Add extra hardware options for having LCD and console display etc.
+
+
+
