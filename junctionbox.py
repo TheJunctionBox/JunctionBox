@@ -2,9 +2,11 @@
 DEBUG = True        #enables debug print statements
 
 #Hardware Options
-BUTTONS = False 	#set to True if buttons are present
-SCREEN = False 	#set to True if there is an LCD screen present
-LED = False 		#set to True if there is an RGB LED present
+BUTTONS =  False 	#set to True if buttons are present
+LCD =      False 	#set to True if there is an LCD screen present
+LED =      False 	#set to True if there is an RGB LED present
+KEYBOARD = True     #set to True if keyboard is present
+SCREEN =   True     #set to True if a monitor is present
 
 if BUTTONS or LED:
 	import RPi.GPIO as GPIO
@@ -29,7 +31,7 @@ EPISODE_FILE_PATTERN = "*.xml"
 NAMESPACE = "{http://linuxcentre.net/xmlstuff/get_iplayer}"
 TICKER = ['-','\\','|','/']
 
-if BUTTONS or LED:
+if BUTTONS or LED or LCD:
 	GPIO.setmode(GPIO.BCM)
 	GPIO.setwarnings(False)
 
@@ -151,21 +153,25 @@ def update_position():
     if player_status == PAUSED:
         return True     #playing normally (not seeking), paused so don't ask for position
     
-    debug("here updpos 0")
     pos = mp.time_pos
-    debug("here updpos 1")
+    
+    #really hacky bit but it seems sometimes mplayer only responds every second call
+    if not(isinstance(pos, float)):
+        pos = mp.time_pos
 
     if isinstance(pos, float):
+
         current_position = pos
 
         episode = episodes[current_episode]
         tracks = episode['tracks']
-    
+
         for i in range(len(tracks)):
             if tracks[i]['seconds'] + intro_offset > pos:
                 break
 
         current_track = i - 1
+
         return True     #playing normally
     else:
         return False    #seeking
@@ -178,17 +184,18 @@ def display(line1, line2):
     display_line1 = line1.ljust(16, " ")
     display_line2 = line2.ljust(16, " ")
     
-    if SCREEN:
+    if LCD:
         #TODO screen code
         noop
-    else:
+        
+    if SCREEN:
         stdscr.addstr(1,4,line1)
         stdscr.addstr(2,4,line2)
         stdscr.refresh()
 
 
 def debug(msg, value=""):
-    if DEBUG:
+    if DEBUG and SCREEN:
         text = msg + ": %s" % value
         stdscr.addstr(6,0, "DEBUG:")
         stdscr.addstr(7,0, text)
@@ -259,17 +266,24 @@ def play_pause():
 
     
 def led(red, green, blue):
-	if LED:
+    if LED:
 		GPIO.output(RED_PIN, 1 - red)
 		GPIO.output(GREEN_PIN, 1 - green)
 		GPIO.output(BLUE_PIN, 1 - blue)
-	else:
-	    colour = red + green * 2 + blue	* 4
-	    if colour == 0:
-	        char = " "
-	    else:
-	        char = "*"    
-	    stdscr.addstr(1,22, char, curses.color_pair(colour))
+		
+    elif SCREEN:    #simulate LED on the screen
+	
+        colour = red + green * 2 + blue	* 4
+        if colour == 0:
+            char = " "
+        else:
+            char = "*"    
+            stdscr.addstr(1,22, char, curses.color_pair(colour))
+    
+    else:
+        #TODO show LED status on the LCD somehow
+        pass
+    
 
 class Scroller:
     def __init__(self, left_text, centre_text, right_text, line_size=16):
@@ -335,11 +349,8 @@ def main_loop(screen):
     curses.init_pair(6, curses.COLOR_CYAN, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
     curses.init_pair(7, curses.COLOR_WHITE, curses.COLOR_BLACK)
-
-
-
     
-    display("Late", "Junction")
+    display("Junction", "Box")
     led(0,0,0)
 
     episodes = load_episodes()
@@ -347,10 +358,10 @@ def main_loop(screen):
     current_episode = len(episodes) - 1
     play_episode(current_episode)
 
-
-    time.sleep(2)
-    
-    show_length = mp.length
+    #sometimes mplayer doesn't report back length.
+    show_length = None
+    while(show_length == None):
+        show_length = mp.length
 
     seeking = not(update_position())
     ticker_index = 0
@@ -361,8 +372,9 @@ def main_loop(screen):
     scroller2 = None
 
     led_state = 0
-    debug("here 5")    
+
     while(current_position < show_length):
+
         if last_track != current_track:
             last_track = current_track
             if current_track < 0:
@@ -398,14 +410,12 @@ def main_loop(screen):
         
         display (line1, line2)
 
-        if not(SCREEN):
+        if KEYBOARD:
             handle_keypress(stdscr.getch())
         else:
             time.sleep(0.4)
             
         seeking = not(update_position())
-
-        
 
 
 if __name__ == '__main__':
