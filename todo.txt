@@ -4,6 +4,10 @@ TODO:
     
     Clear the favourite LED when in the intro
 
+Fix flashing of previous track in display when navigating
+
+Make rapid repeated navigation work instead of looping on the same track
+
 Export favourites
 
 A display button to cycle through display options:

@@ -105,7 +105,7 @@ def next_track(channel=0):
 
     episode = episodes[current_episode]
 
-    if current_track < len(episode['tracks']):
+    if current_track < len(episode['tracks']) - 1:
         current_track += 1
         
     track_list = episode['tracks']
@@ -166,11 +166,13 @@ def update_position():
         episode = episodes[current_episode]
         tracks = episode['tracks']
 
+        track_index = len(tracks) - 1
         for i in range(len(tracks)):
             if tracks[i]['seconds'] + intro_offset > pos:
+                track_index = i - 1
                 break
 
-        current_track = i - 1
+        current_track = track_index
 
         return True     #playing normally
     else:
@@ -267,23 +269,23 @@ def play_pause():
     
 def led(red, green, blue):
     if LED:
-		GPIO.output(RED_PIN, 1 - red)
-		GPIO.output(GREEN_PIN, 1 - green)
-		GPIO.output(BLUE_PIN, 1 - blue)
-		
+        GPIO.output(RED_PIN, 1 - red)
+        GPIO.output(GREEN_PIN, 1 - green)
+        GPIO.output(BLUE_PIN, 1 - blue)
+
     elif SCREEN:    #simulate LED on the screen
-	
+
         colour = red + green * 2 + blue	* 4
         if colour == 0:
             char = " "
         else:
             char = "*"    
-            stdscr.addstr(1,22, char, curses.color_pair(colour))
-    
+        stdscr.addstr(1,22, char, curses.color_pair(colour))
+
     else:
         #TODO show LED status on the LCD somehow
         pass
-    
+
 
 class Scroller:
     def __init__(self, left_text, centre_text, right_text, line_size=16):
