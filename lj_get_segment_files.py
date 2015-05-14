@@ -57,8 +57,8 @@ def parse_segment_files():
                 artist = m.group(3)
                 track = m.group(4)
 
-                data.append({'loc':loc, 'seconds':seconds, 'artist':artist, 
-                             'track':track, 'favourite':False, 'heard':False})
+                data.append({'loc':loc, 'seconds':seconds, 'artist':artist, 'track':track,
+                             'favourite':False, 'favourited':False, 'heard':False})
 
             pickle.dump(data, open(parsed_file_name, "wb"))
 

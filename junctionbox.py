@@ -22,12 +22,18 @@ import pickle
 from subprocess import call
 
 
-EPISODE_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
-                    "../jb_data/Late_Junction")
-                    
+#TODO move to config
 DATA_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                     "../jb_data")
+
+
+
+#TODO remove and search for subdirs instead
+EPISODE_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+                    "../jb_data/Late_Junction")
+
 EPISODE_FILE_PATTERN = "*.xml"
+FAVOURITED_LOG_FILE = "favourited.txt"
 NAMESPACE = "{http://linuxcentre.net/xmlstuff/get_iplayer}"
 TICKER = ['-','\\','|','/']
 
@@ -58,8 +64,6 @@ PLAYING = 1
 PAUSED = 2
 
 
-
-
 intro_offset = 11   #offset in seconds of the start of the music
 current_episode = 0
 current_track = 0
@@ -67,6 +71,8 @@ current_position = 0
 episodes = []
 player_status = STOPPED
 stdscr = None
+favourited_log_queue = None
+
 
 mp = mpylayer.MPlayerControl()
 
@@ -125,10 +131,28 @@ def next_episode(channel=0):
 
 
 def mark_favourite(channel=0):
-    track = episodes[current_episode]['tracks'][current_track]
+    global favourited_log_queue
+
+    episode = episodes[current_episode] 
+    track = episode['tracks'][current_track]
     track['favourite'] = not(track['favourite'])
+
+    if favourited_log_queue != None:
+        #if the current track has been un-favourited then take it off the log queue
+
+        #if there is another track on the queue then write it to the log file
+        if favourited_log_queue != track:
+            log_favourited(favourited_log_queue, episode)
+
+
+        favourited_log_queue = None
+    else:
+        if track['favourite']:
+            favourited_log_queue = track
+
     show_favourite(track['favourite'])
     save_data()
+    
 
 
 if BUTTONS:
@@ -336,10 +360,22 @@ def handle_keypress(c):
     elif c == ord('n'):
         mark_favourite()
     elif c == ord('q'):
-        raise           #if q is pressed then quit
+        quit()
+
+#Write a human readable log file of tracks that have been favourited.
+#Note: a track is deliberately not removed from the log file if later un-favourited. 
+def log_favourited(track, episode):
+    f = open(os.path.join(DATA_DIRECTORY, FAVOURITED_LOG_FILE), "a")
+    
+    data = track['track'] + "\n" + track['artist'] + "\n" + \
+           episode['episode'] + "  " + episode['firstbcastdate'] + "\n\n"
+
+    f.write(data)
+    f.close
+    
 
 def main_loop(screen):
-    global current_episode, episodes, stdscr
+    global current_episode, episodes, stdscr, favourited_log_queue
 
     stdscr = screen    
     curses.curs_set(0)
@@ -379,11 +415,12 @@ def main_loop(screen):
 
         if last_track != current_track:
             last_track = current_track
+            episode = episodes[current_episode]
             if current_track < 0:
-                scroller1 = Scroller("", episodes[current_episode]['episode'], "      ")
-                scroller2 = Scroller("", episodes[current_episode]['firstbcastdate'], "  ")
+                scroller1 = Scroller("", episode['episode'], "      ")
+                scroller2 = Scroller("", episode['firstbcastdate'], "  ")
             else:
-                track = episodes[current_episode]['tracks'][current_track]
+                track = episode['tracks'][current_track]
                 artist = track['artist']
                 scroller1 = Scroller("", artist, "      ")
                 
@@ -392,7 +429,13 @@ def main_loop(screen):
                 scroller2 = Scroller(track_no, track_name, "  ")
 
                 show_favourite(track['favourite'])
-                
+
+                #if there is a track in the log queue when the track changes, log it.
+                if favourited_log_queue != None:
+                    log_favourited(favourited_log_queue, episode)
+                    favourited_log_queue = None                
+
+
 
         line1 = scroller1.scroll()
         line2 = scroller2.scroll()
@@ -419,6 +462,15 @@ def main_loop(screen):
             
         seeking = not(update_position())
 
+def quit():
+    global favourited_log_queue
+
+    #save anything pending in the favourited log queue before quitting
+    if favourited_log_queue != None:
+        log_favourited(favourited_log_queue, episodes[current_episode])
+        favourited_log_queue = None
+
+    raise           #if q is pressed then quit
 
 if __name__ == '__main__':
     curses.wrapper(main_loop)

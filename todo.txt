@@ -4,6 +4,12 @@ Bug: displays wrong episode
 
 Bug: crashing on Fiona's episodes when it hits the first track with an error from curses in show_favourite
 
+Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directories)
+
+Add performers to data extracted from Late Junction XML
+
+Add performer data to the exported favourited file
+
 Make file paths configurable
 
 Fix flashing of previous track in display when navigating
