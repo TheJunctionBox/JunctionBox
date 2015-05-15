@@ -20,17 +20,43 @@ import xml.etree.ElementTree as ET
 import re
 import pickle
 from subprocess import call
-
+import ConfigParser
+from os.path import expanduser
+import os.path
 
 #TODO move to config
 DATA_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                     "../jb_data")
 
+def getboolean(mystring):
+  return mystring == "True"
 
+# Check for configuration files
+configfile = os.path.join( expanduser("~"), ".junctionbox")
+Config = ConfigParser.ConfigParser()
+if os.path.isfile(configfile):  
+	Config.read(configfile)
+	print "config found"
+	print Config.sections()
+	if 'basic' in Config.sections():
+		confitems = dict(Config.items('basic'))
+		if 'debug' in confitems:
+			DEBUG = getboolean(confitems['debug'])
+		if 'buttons' in confitems:
+			BUTTONS = getboolean(confitems['buttons'])
+		if 'lcd' in confitems:
+			LCD = getboolean(confitems['lcd'])
+		if 'led' in confitems:
+			LED = getboolean(confitems['led'])
+		if 'keyboard' in confitems:
+			KEYBOARD = getboolean(confitems['keyboard'])
+		if 'screen' in confitems:
+			SCREEN = getboolean(confitems['screen'])
+		if 'data_directory' in confitems:
+			DATA_DIRECTORY = confitems['data_directory']
 
 #TODO remove and search for subdirs instead
-EPISODE_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
-                    "../jb_data/Late_Junction")
+EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
 
 EPISODE_FILE_PATTERN = "*.xml"
 FAVOURITED_LOG_FILE = "favourited.txt"
@@ -75,6 +101,7 @@ favourited_log_queue = None
 
 
 mp = mpylayer.MPlayerControl()
+
 
 
 def prev_episode(channel=0):
@@ -242,11 +269,12 @@ def load_episodes():
         filename = os.path.join(EPISODE_DIRECTORY,
                    root.find(NAMESPACE + 'fileprefix').text + "." +
                    root.find(NAMESPACE + 'ext').text)
-        
+
         pid = root.find(NAMESPACE + 'pid').text
         firstbcastdate = root.find(NAMESPACE + 'firstbcastdate').text
         channel = root.find(NAMESPACE + 'channel').text
-        brand = root.find(NAMESPACE + 'brand').text
+	# "band" is not present in older xml, and not used below, hence removed.
+        #brand = root.find(NAMESPACE + 'brand').text
         episode = root.find(NAMESPACE + 'episode').text
 
         segment_file_name = os.path.join(EPISODE_DIRECTORY, pid + ".p")
@@ -378,7 +406,7 @@ def main_loop(screen):
     global current_episode, episodes, stdscr, favourited_log_queue
 
     stdscr = screen    
-    curses.curs_set(0)
+#    curses.curs_set(0)
     curses.halfdelay(4)
     curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
