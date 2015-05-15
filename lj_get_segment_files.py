@@ -27,8 +27,6 @@ if os.path.isfile(configfile):
         confitems = dict(Config.items('basic'))
         if 'data_directory' in confitems:
             DATA_DIRECTORY = confitems['data_directory']
-else:
-    print "sutff"
 
 #TODO remove and search for subdirs instead
 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
