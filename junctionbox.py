@@ -7,6 +7,7 @@ LCD =      False 	#set to True if there is an LCD screen present
 LED =      False 	#set to True if there is an RGB LED present
 KEYBOARD = True     #set to True if keyboard is present
 SCREEN =   True     #set to True if a monitor is present
+HIDE_CURSOR = True
 
 if BUTTONS or LED:
 	import RPi.GPIO as GPIO
@@ -36,8 +37,6 @@ configfile = os.path.join( expanduser("~"), ".junctionbox")
 Config = ConfigParser.ConfigParser()
 if os.path.isfile(configfile):  
 	Config.read(configfile)
-	print "config found"
-	print Config.sections()
 	if 'basic' in Config.sections():
 		confitems = dict(Config.items('basic'))
 		if 'debug' in confitems:
@@ -52,6 +51,8 @@ if os.path.isfile(configfile):
 			KEYBOARD = getboolean(confitems['keyboard'])
 		if 'screen' in confitems:
 			SCREEN = getboolean(confitems['screen'])
+		if 'hide_cursor' in confitems:
+			HIDE_CURSOR = getboolean(confitems['hide_cursor'])
 		if 'data_directory' in confitems:
 			DATA_DIRECTORY = confitems['data_directory']
 
@@ -269,13 +270,16 @@ def load_episodes():
         filename = os.path.join(EPISODE_DIRECTORY,
                    root.find(NAMESPACE + 'fileprefix').text + "." +
                    root.find(NAMESPACE + 'ext').text)
-
-        pid = root.find(NAMESPACE + 'pid').text
-        firstbcastdate = root.find(NAMESPACE + 'firstbcastdate').text
-        channel = root.find(NAMESPACE + 'channel').text
-	# "band" is not present in older xml, and not used below, hence removed.
-        #brand = root.find(NAMESPACE + 'brand').text
-        episode = root.find(NAMESPACE + 'episode').text
+	try:
+		pid = root.find(NAMESPACE + 'pid').text
+		firstbcastdate = root.find(NAMESPACE + 'firstbcastdate').text
+		channel = root.find(NAMESPACE + 'channel').text
+		# "band" is not present in older xml, and not used below, hence removed.
+		#brand = root.find(NAMESPACE + 'brand').text
+		episode = root.find(NAMESPACE + 'episode').text
+	except:
+		if DEBUG:
+			print "Missing XML element in: " + metaDataFile
 
         segment_file_name = os.path.join(EPISODE_DIRECTORY, pid + ".p")
         tracks = get_segments(segment_file_name)
@@ -406,7 +410,8 @@ def main_loop(screen):
     global current_episode, episodes, stdscr, favourited_log_queue
 
     stdscr = screen    
-    curses.curs_set(0)
+    if HIDE_CURSOR:
+	    curses.curs_set(0)
     curses.halfdelay(4)
     curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
