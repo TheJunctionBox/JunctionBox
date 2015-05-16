@@ -7,7 +7,8 @@ LCD =      False 	#set to True if there is an LCD screen present
 LED =      False 	#set to True if there is an RGB LED present
 KEYBOARD = True     #set to True if keyboard is present
 SCREEN =   True     #set to True if a monitor is present
-HIDE_CURSOR = True
+HIDE_CURSOR = True  # Cursor is hidden by default, but some curses libs don't support it.
+LINESIZE = 16       # doesn't work yet
 
 if BUTTONS or LED:
 	import RPi.GPIO as GPIO
@@ -233,10 +234,10 @@ def update_position():
 
 
 def display(line1, line2):
-    line1 = line1[0:16]
-    line2 = line2[0:16] 
-    display_line1 = line1.ljust(16, " ")
-    display_line2 = line2.ljust(16, " ")
+    line1 = line1[0:LINESIZE]
+    line2 = line2[0:LINESIZE] 
+    display_line1 = line1.ljust(LINESIZE, " ")
+    display_line2 = line2.ljust(LINESIZE, " ")
     
     if LCD:
         #TODO screen code
@@ -278,8 +279,9 @@ def load_episodes():
 		#brand = root.find(NAMESPACE + 'brand').text
 		episode = root.find(NAMESPACE + 'episode').text
 	except:
-		if DEBUG:
-			print "Missing XML element in: " + metaDataFile
+		pass
+		#if DEBUG:
+			#print "Missing XML element in: " + metaDataFile
 
         segment_file_name = os.path.join(EPISODE_DIRECTORY, pid + ".p")
         tracks = get_segments(segment_file_name)
@@ -344,7 +346,7 @@ def led(red, green, blue):
 
 
 class Scroller:
-    def __init__(self, left_text, centre_text, right_text, line_size=16):
+    def __init__(self, left_text, centre_text, right_text, line_size=LINESIZE):
         self.left_text = left_text
         self.centre_text = centre_text
         self.right_text = right_text
@@ -502,6 +504,9 @@ def quit():
     if favourited_log_queue != None:
         log_favourited(favourited_log_queue, episodes[current_episode])
         favourited_log_queue = None
+
+    if BUTTONS or LED or LCD:
+	GPIO.cleanup()
 
     raise           #if q is pressed then quit
 
