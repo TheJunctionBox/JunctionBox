@@ -8,7 +8,8 @@ LED =      False 	#set to True if there is an RGB LED present
 KEYBOARD = True     #set to True if keyboard is present
 SCREEN =   True     #set to True if a monitor is present
 HIDE_CURSOR = True  # Cursor is hidden by default, but some curses libs don't support it.
-LINESIZE = 16       # doesn't work yet
+LINEWIDTH = 16       # Characters available on display (per line) 
+DISPLAYHEIGHT = 2
 
 if BUTTONS or LED:
 	import RPi.GPIO as GPIO
@@ -25,6 +26,7 @@ from subprocess import call
 import ConfigParser
 from os.path import expanduser
 import os.path
+import sys
 
 #TODO move to config
 DATA_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -54,6 +56,8 @@ if os.path.isfile(configfile):
 			SCREEN = getboolean(confitems['screen'])
 		if 'hide_cursor' in confitems:
 			HIDE_CURSOR = getboolean(confitems['hide_cursor'])
+		if 'linewidth' in confitems:
+			LINEWIDTH = int(confitems['linewidth'])
 		if 'data_directory' in confitems:
 			DATA_DIRECTORY = confitems['data_directory']
 
@@ -103,8 +107,6 @@ favourited_log_queue = None
 
 
 mp = mpylayer.MPlayerControl()
-
-
 
 def prev_episode(channel=0):
     global current_episode
@@ -234,10 +236,10 @@ def update_position():
 
 
 def display(line1, line2):
-    line1 = line1[0:LINESIZE]
-    line2 = line2[0:LINESIZE] 
-    display_line1 = line1.ljust(LINESIZE, " ")
-    display_line2 = line2.ljust(LINESIZE, " ")
+    line1 = line1[0:LINEWIDTH]
+    line2 = line2[0:LINEWIDTH] 
+    display_line1 = line1.ljust(LINEWIDTH, " ")
+    display_line2 = line2.ljust(LINEWIDTH, " ")
     
     if LCD:
         #TODO screen code
@@ -276,7 +278,7 @@ def load_episodes():
 		firstbcastdate = root.find(NAMESPACE + 'firstbcastdate').text
 		channel = root.find(NAMESPACE + 'channel').text
 		# "band" is not present in older xml, and not used below, hence removed.
-		#brand = root.find(NAMESPACE + 'brand').text
+		# brand = root.find(NAMESPACE + 'brand').text
 		episode = root.find(NAMESPACE + 'episode').text
 	except:
 		pass
@@ -315,11 +317,17 @@ def play_episode(index):
 
 def play_pause():
     global player_status
-    
+
+    #print "OLD Status: "  + str(player_status) 
+
     if player_status == PLAYING:
         player_status = PAUSED
+	print "Status: PAUSED" 
     else:
         player_status = PLAYING
+	print "Status: PLAYING" 
+
+     #print "NEW Status: "  + str(player_status) 
 
     mp.pause()
     
@@ -346,7 +354,7 @@ def led(red, green, blue):
 
 
 class Scroller:
-    def __init__(self, left_text, centre_text, right_text, line_size=LINESIZE):
+    def __init__(self, left_text, centre_text, right_text, line_size=LINEWIDTH):
         self.left_text = left_text
         self.centre_text = centre_text
         self.right_text = right_text
@@ -379,6 +387,8 @@ def show_favourite(favourite):
     else:
         led(0, 0, 0)
 
+def mute_unmute():
+    mp.volume = 0
 
 def handle_keypress(c):
     if c == ord('z'):
@@ -393,6 +403,8 @@ def handle_keypress(c):
         next_episode()
     elif c == ord('n'):
         mark_favourite()
+    elif c == ord('m'):
+        mute_unmute()
     elif c == ord('q'):
         quit()
 
@@ -485,8 +497,9 @@ def main_loop(screen):
         else:
             status = "#"
             
-        line2 = line2[0:14].ljust(14, " ") + " " + status
-        line1 = line1[0:10] + " " + format_time(current_position)
+
+        line2 = line2[0:LINEWIDTH-2].ljust(LINEWIDTH-2, " ") + " " + status
+        line1 = line1[0:LINEWIDTH-6] + " " + format_time(current_position)
         
         display (line1, line2)
 
@@ -508,6 +521,8 @@ def quit():
     if BUTTONS or LED or LCD:
 	GPIO.cleanup()
 
+	
+    # sys.exit("Error message")
     raise           #if q is pressed then quit
 
 if __name__ == '__main__':
