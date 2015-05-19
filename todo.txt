@@ -1,8 +1,11 @@
 TODO:
 
+
 Bug: displays wrong episode
 
 Bug: crashing on Fiona's episodes when it hits the first track with an error from curses in show_favourite
+
+Bug: fix the pausing bug
 
 Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directories)
 
@@ -34,7 +37,6 @@ Separate segment download from parsing
 Put extra fields in at the parsing stage
 
 
-fix the pausing bug
 
 create a while True main loop (around the current while loop)
 
