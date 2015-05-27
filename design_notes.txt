@@ -1,0 +1,11 @@
+
+Class player
+
+Class display
+    __init__(x,y)  #the size of the display in characters
+
+    
+
+
+
+main_loop

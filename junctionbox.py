@@ -103,6 +103,8 @@ current_position = 0
 episodes = []
 player_status = STOPPED
 stdscr = None
+main_display = None
+debug_display = None
 favourited_log_queue = None
 
 
@@ -246,17 +248,26 @@ def display(line1, line2):
         noop
         
     if SCREEN:
-        stdscr.addstr(1,4,line1)
-        stdscr.addstr(2,4,line2)
-        stdscr.refresh()
+        main_display.addstr(0,0,line1)
+#        main_display.addstr(1,0,line2)
+        main_display.refresh()
 
 
 def debug(msg, value=""):
     if DEBUG and SCREEN:
-        text = msg + ": %s" % value
-        stdscr.addstr(6,0, "DEBUG:")
-        stdscr.addstr(7,0, text)
-        stdscr.refresh()
+        if value != "":
+            text = msg + ": %s" % value
+        else:
+            text = msg
+
+        max_yx = debug_display.getmaxyx()        
+
+        for i in range(0, len(text), max_yx[1]):
+            debug_display.addstr(max_yx[0]-1,0, text[i:i + max_yx[1]])
+            debug_display.scroll()
+
+        debug_display.hline(0,0, "-", max_yx[1])
+#        debug_display.refresh()
 
 
 def load_episodes():
@@ -273,26 +284,31 @@ def load_episodes():
         filename = os.path.join(EPISODE_DIRECTORY,
                    root.find(NAMESPACE + 'fileprefix').text + "." +
                    root.find(NAMESPACE + 'ext').text)
-	try:
-		pid = root.find(NAMESPACE + 'pid').text
-		firstbcastdate = root.find(NAMESPACE + 'firstbcastdate').text
-		channel = root.find(NAMESPACE + 'channel').text
-		# "band" is not present in older xml, and not used below, hence removed.
-		# brand = root.find(NAMESPACE + 'brand').text
-		episode = root.find(NAMESPACE + 'episode').text
-	except:
-		pass
-		#if DEBUG:
-			#print "Missing XML element in: " + metaDataFile
+
+        try:
+            pid = root.find(NAMESPACE + 'pid').text
+            firstbcastdate = root.find(NAMESPACE + 'firstbcastdate').text
+            channel = root.find(NAMESPACE + 'channel').text
+            # "band" is not present in older xml, and not used below, hence removed.
+            # brand = root.find(NAMESPACE + 'brand').text
+            episode = root.find(NAMESPACE + 'episode').text
+        except:
+            pass
+            #exception will be raised if node is missing from xml
 
         segment_file_name = os.path.join(EPISODE_DIRECTORY, pid + ".p")
         tracks = get_segments(segment_file_name)
 
         episodes.append({'filename': filename, 'pid':pid, 'episode': episode,
-                         'firstbcastdate': firstbcastdate, 'tracks': tracks})
+                        'firstbcastdate': firstbcastdate, 'tracks': tracks})
 
-        episodes.sort(key=lambda ep: ep['firstbcastdate'])
+    episodes.sort(key=lambda ep: ep['firstbcastdate'])
 
+    for ep in episodes:
+        debug(ep['episode'] + "  " + ep['firstbcastdate'] + "\n\r" + ep['filename'] + 
+                "\n\r" + str(ep['tracks'][0]['artist']) + "\n\r")
+
+    debug("no. episodes", len(episodes))
     return episodes        
 
 
@@ -318,16 +334,10 @@ def play_episode(index):
 def play_pause():
     global player_status
 
-    #print "OLD Status: "  + str(player_status) 
-
     if player_status == PLAYING:
         player_status = PAUSED
-	print "Status: PAUSED" 
     else:
         player_status = PLAYING
-	print "Status: PLAYING" 
-
-     #print "NEW Status: "  + str(player_status) 
 
     mp.pause()
     
@@ -346,7 +356,7 @@ def led(red, green, blue):
             char = " "
         else:
             char = "*"    
-        stdscr.addstr(1,22, char, curses.color_pair(colour))
+        stdscr.addstr(0,22, char, curses.color_pair(colour))
 
     else:
         #TODO show LED status on the LCD somehow
@@ -421,9 +431,13 @@ def log_favourited(track, episode):
     
 
 def main_loop(screen):
-    global current_episode, episodes, stdscr, favourited_log_queue
+    global current_episode, episodes, stdscr, main_display, debug_display, favourited_log_queue
 
-    stdscr = screen    
+    stdscr = screen
+    main_display = curses.newwin(DISPLAYHEIGHT,LINEWIDTH,1,0)    
+    debug_display = curses.newwin(0, 0, DISPLAYHEIGHT + 2, 0)
+    debug_display.scrollok(1)
+
     if HIDE_CURSOR:
 	    curses.curs_set(0)
     curses.halfdelay(4)
@@ -435,7 +449,7 @@ def main_loop(screen):
     curses.init_pair(5, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
     curses.init_pair(7, curses.COLOR_WHITE, curses.COLOR_BLACK)
     
-    display("Junction", "Box")
+    display("Junction", "Box") 
     led(0,0,0)
 
     episodes = load_episodes()
@@ -452,6 +466,7 @@ def main_loop(screen):
     ticker_index = 0
 
     last_track = -2
+    last_episode = -2
 
     scroller1 = None
     scroller2 = None
@@ -460,7 +475,8 @@ def main_loop(screen):
 
     while(current_position < show_length):
 
-        if last_track != current_track:
+        if (last_track != current_track) or (last_episode != current_episode):
+            last_episode = current_episode
             last_track = current_track
             episode = episodes[current_episode]
             if current_track < 0:
@@ -505,6 +521,8 @@ def main_loop(screen):
 
         if KEYBOARD:
             handle_keypress(stdscr.getch())
+            #TODO do I really need this? Why does the debug window blank after getch()?
+            debug_display.refresh()
         else:
             time.sleep(0.4)
             
