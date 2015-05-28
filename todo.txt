@@ -1,13 +1,16 @@
 TODO:
 
 
-Bug: displays wrong episode
-    looks like a refresh problem. I think because the track isn't changing the display isn't updating to the current episode.
-    get debug display working (with curses)
-        why does display clear?
-            is the refresh command in debug in the wrong place?
+    /Bug: displays wrong episode
+        looks like a refresh problem. I think because the track isn't changing the display isn't updating to the current episode.
+        get debug display working (with curses)
+            why does display clear?
+                is the refresh command in debug in the wrong place?
 
-Bug: crashing on Fiona's episodes when it hits the first track with an error from curses in show_favourite
+
+    /Bug: crashing on Fiona's episodes when it hits the first track with an error from curses in show_favourite
+
+        Add back the second line of the display
 
 Bug: fix the pausing bug
 

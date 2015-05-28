@@ -239,7 +239,8 @@ def update_position():
 
 def display(line1, line2):
     line1 = line1[0:LINEWIDTH]
-    line2 = line2[0:LINEWIDTH] 
+    line2 = line2[0:LINEWIDTH]
+ 
     display_line1 = line1.ljust(LINEWIDTH, " ")
     display_line2 = line2.ljust(LINEWIDTH, " ")
     
@@ -248,8 +249,8 @@ def display(line1, line2):
         noop
         
     if SCREEN:
-        main_display.addstr(0,0,line1)
-#        main_display.addstr(1,0,line2)
+        main_display.addstr(0,0,display_line1)
+        main_display.addstr(1,0,display_line2)
         main_display.refresh()
 
 
@@ -304,11 +305,6 @@ def load_episodes():
 
     episodes.sort(key=lambda ep: ep['firstbcastdate'])
 
-    for ep in episodes:
-        debug(ep['episode'] + "  " + ep['firstbcastdate'] + "\n\r" + ep['filename'] + 
-                "\n\r" + str(ep['tracks'][0]['artist']) + "\n\r")
-
-    debug("no. episodes", len(episodes))
     return episodes        
 
 
@@ -434,7 +430,7 @@ def main_loop(screen):
     global current_episode, episodes, stdscr, main_display, debug_display, favourited_log_queue
 
     stdscr = screen
-    main_display = curses.newwin(DISPLAYHEIGHT,LINEWIDTH,1,0)    
+    main_display = curses.newwin(DISPLAYHEIGHT + 1,LINEWIDTH,1,0)    
     debug_display = curses.newwin(0, 0, DISPLAYHEIGHT + 2, 0)
     debug_display.scrollok(1)
 
