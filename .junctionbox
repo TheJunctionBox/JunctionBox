@@ -12,3 +12,7 @@
 #unprintable_char=#
 #data_directory=~/jb_data
 
+# lj_get_segment_files options
+#HTML_NAME_CONVENTION = "pid"
+#HTML_NAME_CONVENTION = "fileprefix"
+#HTML_FILE_LONG_NAME = True
