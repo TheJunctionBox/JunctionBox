@@ -10,6 +10,7 @@ SCREEN =   True     #set to True if a monitor is present
 HIDE_CURSOR = True  # Cursor is hidden by default, but some curses libs don't support it.
 LINEWIDTH = 16       # Characters available on display (per line) 
 DISPLAYHEIGHT = 2
+NON_ASCII_CHAR = "#"
 
 if BUTTONS or LED:
 	import RPi.GPIO as GPIO
@@ -27,6 +28,7 @@ import ConfigParser
 from os.path import expanduser
 import os.path
 import sys
+import string
 
 #TODO move to config
 DATA_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -106,7 +108,29 @@ stdscr = None
 main_display = None
 debug_display = None
 favourited_log_queue = None
+event_queue = []
 
+class Event:
+    def __init__(self, name, handlers = []):
+        self.name = name
+        self.handlers = handlers
+
+    def add_handler(self, proc):
+        self.handlers.append(proc)
+
+    def get_handlers(self):
+        return self.handlers
+
+class Event_Queue: 
+    def __init__(self):
+        self.event_queue = []
+
+    def push(self, event):
+        self.event_queue.append(event)
+
+    def pop(self):
+        self.event_queue
+       
 
 mp = mpylayer.MPlayerControl()
 
@@ -236,21 +260,39 @@ def update_position():
         return False    #seeking
 
 
+def strip_non_ascii_characters(in_string):
+
+    out_string = ""
+
+    for s in in_string:
+        if s in string.printable:
+            out_string = out_string + s
+        else:
+            out_string = out_string + NON_ASCII_CHAR
+
+    return out_string
+
+
+
 
 def display(line1, line2):
+    line1 = strip_non_ascii_characters(line1)
+    line2 = strip_non_ascii_characters(line2)
+
     line1 = line1[0:LINEWIDTH]
     line2 = line2[0:LINEWIDTH]
+
  
-    display_line1 = line1.ljust(LINEWIDTH, " ")
-    display_line2 = line2.ljust(LINEWIDTH, " ")
+    line1 = line1.ljust(LINEWIDTH, " ")
+    line2 = line2.ljust(LINEWIDTH, " ")
     
     if LCD:
         #TODO screen code
         noop
         
     if SCREEN:
-        main_display.addstr(0,0,display_line1)
-        main_display.addstr(1,0,display_line2)
+        main_display.addstr(0,0,line1)
+        main_display.addstr(1,0,line2)
         main_display.refresh()
 
 

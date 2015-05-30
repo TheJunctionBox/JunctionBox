@@ -12,7 +12,17 @@ TODO:
 
         Add back the second line of the display
 
-Bug: fix the pausing bug
+
+    /Bug: fix display bug that eats non ascii chars leaving the string too short
+
+Bug: fix "&amp;" etc in the display
+
+Bug: fix the pausing bug (hard to reproduce)
+
+Refactor: use an event queue
+Make rapid repeated navigation work instead of looping on the same track
+
+Refactor: make player and display objects (player object can raise events to get the display to update)
 
 Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directories)
 
@@ -24,11 +34,10 @@ Add performer data to the exported favourited file
 
 Add fast-forward / rewind (I can't skip DJ chat)
 
-Make file paths configurable
+    /Make file paths configurable
 
 Fix flashing of previous track in display when navigating
 
-Make rapid repeated navigation work instead of looping on the same track
 
 Export favourites
 
