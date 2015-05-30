@@ -293,11 +293,14 @@ def load_episodes():
             # brand = root.find(NAMESPACE + 'brand').text
             episode = root.find(NAMESPACE + 'episode').text
         except:
-            pass
+            debug("Error parsing: "+metaDataFile)
             #exception will be raised if node is missing from xml
 
         segment_file_name = os.path.join(EPISODE_DIRECTORY, pid + ".p")
         tracks = get_segments(segment_file_name)
+
+        if len(tracks) == 0:
+            debug("No tracks read for "+metaDataFile)
 
         episodes.append({'filename': filename, 'pid':pid, 'episode': episode,
                         'firstbcastdate': firstbcastdate, 'tracks': tracks})
@@ -305,8 +308,11 @@ def load_episodes():
     episodes.sort(key=lambda ep: ep['firstbcastdate'])
 
     for ep in episodes:
-        debug(ep['episode'] + "  " + ep['firstbcastdate'] + "\n\r" + ep['filename'] + 
-                "\n\r" + str(ep['tracks'][0]['artist']) + "\n\r")
+        try:
+            debug(ep['episode'] + "  " + ep['firstbcastdate'] + "\n\r" + ep['filename'] + 
+                    "\n\r" + str(ep['tracks'][0]['artist']) + "\n\r")
+        except:
+            debug("Error in episode "+ep['pid'])
 
     debug("no. episodes", len(episodes))
     return episodes        
