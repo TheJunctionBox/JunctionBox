@@ -1,19 +1,4 @@
 #!/usr/bin/python
-DEBUG = True        #enables debug print statements
-
-#Hardware Options
-BUTTONS =  False 	#set to True if buttons are present
-LCD =      False 	#set to True if there is an LCD screen present
-LED =      False 	#set to True if there is an RGB LED present
-KEYBOARD = True     #set to True if keyboard is present
-SCREEN =   True     #set to True if a monitor is present
-HIDE_CURSOR = True  # Cursor is hidden by default, but some curses libs don't support it.
-LINEWIDTH = 16       # Characters available on display (per line) 
-DISPLAYHEIGHT = 2
-NON_ASCII_CHAR = "#"
-
-if BUTTONS or LED:
-	import RPi.GPIO as GPIO
 
 import curses
 import mpylayer
@@ -29,10 +14,26 @@ from os.path import expanduser
 import os.path
 import sys
 import string
+import shutil
 
-#TODO move to config
-DATA_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                    "../jb_data")
+
+#Default Options
+DEBUG = True        #enables debug print statements
+UNPRINTABLE_CHAR = "#"    # character to replace unprintable characters on the display
+DATA_DIRECTORY = os.path.join( expanduser("~"), "/jb_data")     #Default data directory
+    #Hardware Options
+BUTTONS =  False        #set to True if buttons are present
+LCD =      False        #set to True if there is an LCD screen present
+LED =      False        #set to True if there is an RGB LED present
+KEYBOARD = True         #set to True if keyboard is present
+SCREEN =   True         #set to True if a monitor is present
+HIDE_CURSOR = True      # Cursor is hidden by default, but some curses libs don't support it.
+LINEWIDTH = 16          # Characters available on display (per line) 
+DISPLAYHEIGHT = 2       # Lines available on display
+
+
+if BUTTONS or LED:
+	import RPi.GPIO as GPIO
 
 def getboolean(mystring):
   return mystring == "True"
@@ -60,8 +61,17 @@ if os.path.isfile(configfile):
 			HIDE_CURSOR = getboolean(confitems['hide_cursor'])
 		if 'linewidth' in confitems:
 			LINEWIDTH = int(confitems['linewidth'])
-		if 'data_directory' in confitems:
+        if 'displayheight' in confitems:
+            DISPLAYHEIGHT = confitems['displayheight']
+        if 'unprintable_char' in confitems:
+            UNPRINTABLE_CHAR = confitems['unprintable_char']
+        if 'data_directory' in confitems:
 			DATA_DIRECTORY = confitems['data_directory']
+
+else:
+    #if there's no config file then copy over the default one
+    shutil.copyfile(".junctionbox", configfile)
+
 
 #TODO remove and search for subdirs instead
 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
@@ -260,7 +270,7 @@ def update_position():
         return False    #seeking
 
 
-def strip_non_ascii_characters(in_string):
+def strip_UNPRINTABLE_CHARacters(in_string):
 
     out_string = ""
 
@@ -268,7 +278,7 @@ def strip_non_ascii_characters(in_string):
         if s in string.printable:
             out_string = out_string + s
         else:
-            out_string = out_string + NON_ASCII_CHAR
+            out_string = out_string + UNPRINTABLE_CHAR
 
     return out_string
 
@@ -276,8 +286,8 @@ def strip_non_ascii_characters(in_string):
 
 
 def display(line1, line2):
-    line1 = strip_non_ascii_characters(line1)
-    line2 = strip_non_ascii_characters(line2)
+    line1 = strip_UNPRINTABLE_CHARacters(line1)
+    line2 = strip_UNPRINTABLE_CHARacters(line2)
 
     line1 = line1[0:LINEWIDTH]
     line2 = line2[0:LINEWIDTH]

@@ -1,19 +1,21 @@
 TODO:
 
-
     /Bug: displays wrong episode
         looks like a refresh problem. I think because the track isn't changing the display isn't updating to the current episode.
         get debug display working (with curses)
             why does display clear?
                 is the refresh command in debug in the wrong place?
 
-
     /Bug: crashing on Fiona's episodes when it hits the first track with an error from curses in show_favourite
 
         Add back the second line of the display
 
-
     /Bug: fix display bug that eats non ascii chars leaving the string too short
+
+    /create default location for data directory
+    /create default config file and copy it to the default location
+
+Bug: crashes when the data directory is empty (ie no episodes downloaded yet)
 
 Bug: fix "&amp;" etc in the display
 
