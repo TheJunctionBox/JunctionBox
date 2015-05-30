@@ -1,0 +1,14 @@
+#example junctionbox config file
+[basic]
+#debug=False
+#buttons=False
+#lcd=False
+#led=False
+#keyboard=True
+#screen=True
+#hide_cursor=True
+#linewidth=16
+#displayheight=2
+#unprintable_char=#
+#data_directory=~/jb_data
+
