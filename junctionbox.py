@@ -579,7 +579,8 @@ def log_favourited(track, episode):
     f = open(os.path.join(DIR_AND_FAVOURITED_LOG_FILE), "a")
     
     data = track['track'] + "\n" + track['artist'] + "\n" + \
-           episode['episode'] + "  " + episode['firstbcastdate'] + "\n\n"
+           episode['episode'] + "  " + episode['firstbcastdate'] + "\n" + \
+	   "http://www.bbc.co.uk/programmes/" + episode['pid'] + "\n\n"
 
     f.write(data)
     f.close
@@ -652,6 +653,7 @@ def main_loop(screen):
                 show_favourite(track['favourite'])
 
                 #if there is a track in the log queue when the track changes, log it.
+                #(presumably only done here, so that tracks can be unfavourited while the track is still playing)
                 if favourited_log_queue != None:
                     log_favourited(favourited_log_queue, episode)
                     favourited_log_queue = None                
