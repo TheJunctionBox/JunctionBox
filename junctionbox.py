@@ -382,16 +382,22 @@ def play_episode(index):
     display(line1, line2)
 
 
-def play_pause():
+def play_pause(normal):
     global player_status
 
-    if player_status == PLAYING:
-        player_status = PAUSED
+#    debug("Player status in:  "+str(player_status)+" (pl=1, pau=2)")
+    if normal:
+        if player_status == PLAYING:
+            player_status = PAUSED
+        else:
+            player_status = PLAYING
     else:
-        player_status = PLAYING
+        pass
 
+#    debug("Player status out: "+str(player_status))
     mp.pause()
-    
+# If play_pause is rapidly called twice, mp doesn't keep up, hence insert a delay:
+    time.sleep(0.4)
 
     
 def led(red, green, blue):
@@ -452,12 +458,16 @@ def mute_unmute():
     mp.volume = 0
 
 def handle_keypress(c):
+#If you add keys, please also add them to '?'
     if c == ord('z'):
         prev_episode()
     elif c == ord('x'):
         prev_track()
     elif c == ord('c'):
-        play_pause()
+        play_pause(True)
+    elif c == ord('C'):
+        play_pause(False)
+	debug("Play/pause bug fix")
     elif c == ord('v'):
         next_track()
     elif c == ord('b'):        
@@ -466,6 +476,8 @@ def handle_keypress(c):
         mark_favourite()
     elif c == ord('m'):
         mute_unmute()
+    elif c == ord('?'):
+        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; m: mute; ?: this help; C: play/pause bug fix")
     elif c == ord('q'):
         quit()
 
