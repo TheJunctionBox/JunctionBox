@@ -505,7 +505,10 @@ def main_loop(screen):
     debug_display.scrollok(1)
 
     if HIDE_CURSOR:
-	    curses.curs_set(0)
+        try:
+            curses.curs_set(0)
+        except:
+            debug("Cannot hide cursor.")
     curses.halfdelay(4)
     curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
