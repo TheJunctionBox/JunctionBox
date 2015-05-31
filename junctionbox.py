@@ -480,7 +480,7 @@ def handle_keypress(c):
     elif c == ord('m'):
         mute_unmute()
     elif c == ord('?'):
-        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; m: mute; ?: this help; C: play/pause bug fix")
+        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; m: mute; q: quit; ?: this help; C: play/pause bug fix")
     elif c == ord('q'):
         quit()
 
