@@ -22,6 +22,8 @@ DEBUG = True        #enables debug print statements
 UNPRINTABLE_CHAR = "#"    # character to replace unprintable characters on the display
 DATA_DIRECTORY = os.path.join( expanduser("~"), "/jb_data")     #Default data directory
 FAV_DIRECTRORY = DATA_DIRECTORY
+FAST_START = False   # If 'True' reads cached episode information, as long as cache is not older than:
+FAST_START_CACHE_TIME = 24 * 60 * 60  # duration (in s for which episode information in cached
 
 #Hardware Options
 BUTTONS =  False        #set to True if buttons are present
@@ -71,6 +73,10 @@ if os.path.isfile(configfile):
             DATA_DIRECTORY = confitems['data_directory']
         if 'fav_directory' in confitems:
             FAV_DIRECTORY = confitems['fav_directory']
+        if 'fast_start' in confitems:
+            FAST_START = getboolean(confitems['fast_start'])
+        if 'fast_start_cache_time' in confitems:
+            FAST_START_CACHE_TIME = int(confitems['fast_start_cache_time'])
 else:
     #if there's no config file then copy over the default one
     shutil.copyfile(".junctionbox", configfile)
@@ -80,6 +86,8 @@ else:
 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
 if (not os.path.isdir(DATA_DIRECTORY)):
     sys.exit("DATA_DIRECTORY '"+DATA_DIRECTORY+"' not found. Please check your preferences.")
+
+FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
 
 EPISODE_FILE_PATTERN = "*.xml"
 
@@ -331,6 +339,24 @@ def debug(msg, value=""):
 #        debug_display.refresh()
 
 
+def get_episodes():
+    #Decide whether to use cache or to read from EPISODE_DIR.
+
+    if FAST_START:
+        if not(os.path.exists(FAST_START_CACHE_FILE)) or (time.time() - os.path.getmtime(FAST_START_CACHE_FILE) > FAST_START_CACHE_TIME):
+            debug("Fast start: Read episodes from EPISODE_DIR ...")
+            episodes = load_episodes()
+            debug("Fast start: ... and write to cache: "+FAST_START_CACHE_FILE)
+            pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
+        else:
+            debug("Fast start: Read episodes from cache: "+FAST_START_CACHE_FILE)
+            episodes = pickle.load(open(FAST_START_CACHE_FILE, "rb"))
+    else:
+        episodes = load_episodes()
+
+    return episodes
+
+
 def load_episodes():
     #open every meta data file and get the media file and a displayable name
 
@@ -527,7 +553,7 @@ def main_loop(screen):
     display("Junction", "Box") 
     led(0,0,0)
 
-    episodes = load_episodes()
+    episodes = get_episodes()
     
     current_episode = len(episodes) - 1
     play_episode(current_episode)
