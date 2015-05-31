@@ -21,7 +21,9 @@ import shutil
 DEBUG = True        #enables debug print statements
 UNPRINTABLE_CHAR = "#"    # character to replace unprintable characters on the display
 DATA_DIRECTORY = os.path.join( expanduser("~"), "/jb_data")     #Default data directory
-    #Hardware Options
+FAV_DIRECTRORY = DATA_DIRECTORY
+
+#Hardware Options
 BUTTONS =  False        #set to True if buttons are present
 LCD =      False        #set to True if there is an LCD screen present
 LED =      False        #set to True if there is an RGB LED present
@@ -42,32 +44,33 @@ def getboolean(mystring):
 configfile = os.path.join( expanduser("~"), ".junctionbox")
 Config = ConfigParser.ConfigParser()
 if os.path.isfile(configfile):  
-	Config.read(configfile)
-	if 'basic' in Config.sections():
-		confitems = dict(Config.items('basic'))
-		if 'debug' in confitems:
-			DEBUG = getboolean(confitems['debug'])
-		if 'buttons' in confitems:
-			BUTTONS = getboolean(confitems['buttons'])
-		if 'lcd' in confitems:
-			LCD = getboolean(confitems['lcd'])
-		if 'led' in confitems:
-			LED = getboolean(confitems['led'])
-		if 'keyboard' in confitems:
-			KEYBOARD = getboolean(confitems['keyboard'])
-		if 'screen' in confitems:
-			SCREEN = getboolean(confitems['screen'])
-		if 'hide_cursor' in confitems:
-			HIDE_CURSOR = getboolean(confitems['hide_cursor'])
-		if 'linewidth' in confitems:
-			LINEWIDTH = int(confitems['linewidth'])
+    Config.read(configfile)
+    if 'basic' in Config.sections():
+        confitems = dict(Config.items('basic'))
+        if 'debug' in confitems:
+            DEBUG = getboolean(confitems['debug'])
+        if 'buttons' in confitems:
+            BUTTONS = getboolean(confitems['buttons'])
+        if 'lcd' in confitems:
+            LCD = getboolean(confitems['lcd'])
+        if 'led' in confitems:
+            LED = getboolean(confitems['led'])
+        if 'keyboard' in confitems:
+            KEYBOARD = getboolean(confitems['keyboard'])
+        if 'screen' in confitems:
+            SCREEN = getboolean(confitems['screen'])
+        if 'hide_cursor' in confitems:
+            HIDE_CURSOR = getboolean(confitems['hide_cursor'])
+        if 'linewidth' in confitems:
+            LINEWIDTH = int(confitems['linewidth'])
         if 'displayheight' in confitems:
             DISPLAYHEIGHT = confitems['displayheight']
         if 'unprintable_char' in confitems:
             UNPRINTABLE_CHAR = confitems['unprintable_char']
         if 'data_directory' in confitems:
-			DATA_DIRECTORY = confitems['data_directory']
-
+            DATA_DIRECTORY = confitems['data_directory']
+        if 'fav_directory' in confitems:
+            FAV_DIRECTORY = confitems['fav_directory']
 else:
     #if there's no config file then copy over the default one
     shutil.copyfile(".junctionbox", configfile)
@@ -79,7 +82,10 @@ if (not os.path.isdir(DATA_DIRECTORY)):
     sys.exit("DATA_DIRECTORY '"+DATA_DIRECTORY+"' not found. Please check your preferences.")
 
 EPISODE_FILE_PATTERN = "*.xml"
+
 FAVOURITED_LOG_FILE = "favourited.txt"
+DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
+
 NAMESPACE = "{http://linuxcentre.net/xmlstuff/get_iplayer}"
 TICKER = ['-','\\','|','/']
 
@@ -487,7 +493,7 @@ def handle_keypress(c):
 #Write a human readable log file of tracks that have been favourited.
 #Note: a track is deliberately not removed from the log file if later un-favourited. 
 def log_favourited(track, episode):
-    f = open(os.path.join(DATA_DIRECTORY, FAVOURITED_LOG_FILE), "a")
+    f = open(os.path.join(DIR_AND_FAVOURITED_LOG_FILE), "a")
     
     data = track['track'] + "\n" + track['artist'] + "\n" + \
            episode['episode'] + "  " + episode['firstbcastdate'] + "\n\n"

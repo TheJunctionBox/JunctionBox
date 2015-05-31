@@ -11,6 +11,7 @@
 #displayheight=2
 #unprintable_char=#
 #data_directory=~/jb_data
+#fav_directory=~/jb_data
 
 # lj_get_segment_files options
 #HTML_NAME_CONVENTION = "pid"
