@@ -602,9 +602,9 @@ def quit():
     if BUTTONS or LED or LCD:
 	GPIO.cleanup()
 
-	
-    # sys.exit("Error message")
-    raise           #if q is pressed then quit
+    # Use sys.exit, rather than "raise":
+    sys.exit("JunctionBox exited normally.")
+    # raise           #if q is pressed then quit
 
 if __name__ == '__main__':
     curses.wrapper(main_loop)
