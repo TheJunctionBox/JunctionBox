@@ -13,7 +13,9 @@ TODO:
     /Bug: fix display bug that eats non ascii chars leaving the string too short
 
     /create default location for data directory
-    /create default config file and copy it to the default location
+    /create default config file and copy it to the default location (B: done?)
+
+    /Issue: When there are a lot of files (within one or across many dirs, startup is slow)
 
 Bug: crashes when the data directory is empty (ie no episodes downloaded yet)
 
@@ -36,7 +38,7 @@ Add performer data to the exported favourited file
 
 Add fast-forward / rewind (I can't skip DJ chat)
 
-    /Make file paths configurable
+    /Make file paths configurable (B: This is already the case now, isn't it?)
 
 Fix flashing of previous track in display when navigating
 
