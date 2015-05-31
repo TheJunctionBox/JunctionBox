@@ -206,8 +206,8 @@ def adjust_track_start():
     if newtime > 0: 
         episodes[current_episode]['tracks'][adjust_track]['seconds'] = newtime
 	debug("New start time set for track "+str(adjust_track+1)+", when playing "+str(current_track+1))
-    # Needs to be made persistent.
-
+    # Needs to be made persistent:
+    save_data()
 
 def play_pause(channel=0):
     play_pause()
@@ -526,7 +526,13 @@ def show_favourite(favourite):
         led(0, 0, 0)
 
 def mute_unmute():
-    mp.volume = 0
+    debug("current volume: "+str(mp.volume))
+    if mp.volume > 0:
+        mp.volume = 0
+    else:
+        # This doesn't work.
+        mp.volume = 99.5
+    debug("New volume: "+str(mp.volume))
 
 def handle_keypress(c):
 #If you add keys, please also add them to '?'
@@ -673,6 +679,8 @@ def main_loop(screen):
 
 def quit():
     global favourited_log_queue
+
+    debug("Quitting.")
 
     #save anything pending in the favourited log queue before quitting
     if favourited_log_queue != None:
