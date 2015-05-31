@@ -35,6 +35,8 @@ HIDE_CURSOR = True      # Cursor is hidden by default, but some curses libs don'
 LINEWIDTH = 16          # Characters available on display (per line) 
 DISPLAYHEIGHT = 2       # Lines available on display
 
+#Navigation options (not in .junctionbox yet)
+SKIP_TIME = 10
 
 if BUTTONS or LED:
 	import RPi.GPIO as GPIO
@@ -185,8 +187,35 @@ def prev_track(channel=0):
         mp.time_pos = 0
 
 
+def skip_back():
+    if mp.time_pos > SKIP_TIME:
+        mp.time_pos = mp.time_pos - SKIP_TIME
+
+
+def adjust_track_start():
+    global current_track
+    current_time = mp.time_pos
+    newtime = current_time - intro_offset
+    # Work out which track boundary we are near:
+    currtr_diff = abs( current_time - episodes[current_episode]['tracks'][current_track]['seconds'])
+    nexttr_diff = abs( current_time - episodes[current_episode]['tracks'][current_track+1]['seconds'])
+    if (currtr_diff < nexttr_diff):
+        adjust_track = current_track
+    else:
+        adjust_track = current_track + 1
+    if newtime > 0: 
+        episodes[current_episode]['tracks'][adjust_track]['seconds'] = newtime
+	debug("New start time set for track "+str(adjust_track+1)+", when playing "+str(current_track+1))
+    # Needs to be made persistent.
+
+
 def play_pause(channel=0):
     play_pause()
+
+
+def skip_forward():
+    # What happens when we go over the end?
+    mp.time_pos = mp.time_pos + SKIP_TIME
 
 
 def next_track(channel=0):
@@ -505,6 +534,8 @@ def handle_keypress(c):
         prev_episode()
     elif c == ord('x'):
         prev_track()
+    elif c == ord('<'):
+        skip_back()
     elif c == ord('c'):
         play_pause(True)
     elif c == ord('C'):
@@ -514,12 +545,16 @@ def handle_keypress(c):
         next_track()
     elif c == ord('b'):        
         next_episode()
+    elif c == ord('>'):        
+        skip_forward()
     elif c == ord('n'):
         mark_favourite()
+    elif c == ord('/'):
+        adjust_track_start()
     elif c == ord('m'):
         mute_unmute()
     elif c == ord('?'):
-        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; m: mute; q: quit; ?: this help; C: play/pause bug fix")
+        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; m: mute; q: quit; ?: this help; C: play/pause bug fix\n<,>: back/forward some secs, /: adjust track start")
     elif c == ord('q'):
         quit()
 

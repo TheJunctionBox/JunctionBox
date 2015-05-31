@@ -15,13 +15,15 @@ TODO:
     /create default location for data directory
     /create default config file and copy it to the default location (B: done?)
 
-    /Issue: When there are a lot of files (within one or across many dirs, startup is slow)
+    /B: Issue: When there are a lot of files (within one or across many dirs, startup is slow)
+         Have added a FAST_START, but this has implications for segment loading, search "B#" in code
 
 Bug: crashes when the data directory is empty (ie no episodes downloaded yet)
 
 Bug: fix "&amp;" etc in the display
 
 Bug: fix the pausing bug (hard to reproduce)
+    /B: Have added a short delay, which seems to fix it. More elegant suggestion is made in the code.
 
 Refactor: use an event queue
 Make rapid repeated navigation work instead of looping on the same track
@@ -30,7 +32,7 @@ Refactor: make player and display objects (player object can raise events to get
 
 Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directories)
 
-Tidy up the superfluous code in "lj_download_segments
+Tidy up the superfluous code in "lj_download_segments"
 
 Add performers to data extracted from Late Junction XML
 
