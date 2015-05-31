@@ -197,13 +197,16 @@ def adjust_track_start():
     global current_track
     current_time = mp.time_pos
     newtime = current_time - intro_offset
-    # Work out which track boundary we are near:
-    currtr_diff = abs( newtime - episodes[current_episode]['tracks'][current_track]['seconds'])
-    nexttr_diff = abs( newtime - episodes[current_episode]['tracks'][current_track+1]['seconds'])
-    if (currtr_diff < nexttr_diff):
-        adjust_track = current_track
+    if current_track < len(episodes[current_episode]['tracks']) -1:
+        # Work out which track boundary we are near:
+        currtr_diff = abs( newtime - episodes[current_episode]['tracks'][current_track]['seconds'])
+        nexttr_diff = abs( newtime - episodes[current_episode]['tracks'][current_track+1]['seconds'])
+        if (currtr_diff < nexttr_diff):
+            adjust_track = current_track
+        else:
+            adjust_track = current_track + 1
     else:
-        adjust_track = current_track + 1
+        adjust_track = current_track	    
     time_diff = newtime - episodes[current_episode]['tracks'][adjust_track]['seconds']
     if newtime > 0: 
         episodes[current_episode]['tracks'][adjust_track]['seconds'] = newtime
