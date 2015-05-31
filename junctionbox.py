@@ -217,7 +217,10 @@ def mark_favourite(channel=0):
     global favourited_log_queue
 
     episode = episodes[current_episode] 
+    #B: This 
     track = episode['tracks'][current_track]
+    #B: would be replaced by
+    #track = tracks[current_track]
     track['favourite'] = not(track['favourite'])
 
     if favourited_log_queue != None:
@@ -383,6 +386,7 @@ def load_episodes():
             debug("Error parsing: "+metaDataFile)
             #exception will be raised if node is missing from xml
 
+        #B: My suggestion is to not load tracks here.
         segment_file_name = os.path.join(EPISODE_DIRECTORY, pid + ".p")
         tracks = get_segments(segment_file_name)
 
@@ -405,6 +409,9 @@ def play_episode(index):
     global player_status
     
     episode = episodes[index]
+    #B: Suggestion is load tracks here into a global var:
+    #segment_file_name = os.path.join(EPISODE_DIRECTORY, episode['pid'] + ".p")
+    #tracks = get_segments(segment_file_name)
     episode_file = episode['filename']
 
     mp.loadfile(episode_file)
