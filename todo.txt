@@ -39,6 +39,7 @@ Add performers to data extracted from Late Junction XML
 Add performer data to the exported favourited file
 
 Add fast-forward / rewind (I can't skip DJ chat)
+    /B: Have added this. (Use <,> to skip by SKIP_TIME, and "/" to adjust the track start)
 
     /Make file paths configurable (B: This is already the case now, isn't it?)
 
