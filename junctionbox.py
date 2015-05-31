@@ -685,6 +685,7 @@ def main_loop(screen):
 
 def quit():
     global favourited_log_queue
+    global current_episode, current_track, current_position
 
     debug("Quitting.")
 
@@ -705,7 +706,7 @@ def quit():
     mp.quit()
 
     # Use sys.exit, rather than "raise":
-    sys.exit("JunctionBox exited normally.")
+    sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+episodes[current_episode]['firstbcastdate']+".\n")
     # raise           #if q is pressed then quit
 
 if __name__ == '__main__':
