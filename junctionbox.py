@@ -75,6 +75,8 @@ else:
 
 #TODO remove and search for subdirs instead
 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
+if (not os.path.isdir(DATA_DIRECTORY)):
+    sys.exit("DATA_DIRECTORY '"+DATA_DIRECTORY+"' not found. Please check your preferences.")
 
 EPISODE_FILE_PATTERN = "*.xml"
 FAVOURITED_LOG_FILE = "favourited.txt"
@@ -396,8 +398,9 @@ def play_pause(normal):
 
 #    debug("Player status out: "+str(player_status))
     mp.pause()
-# If play_pause is rapidly called twice, mp doesn't keep up, hence insert a delay:
-    time.sleep(0.4)
+# If play_pause is rapidly called twice, mp doesn't keep up, hence insert a delay.
+# This does cause a delay in the display too. A better way would be to check the time since this fn was last called.
+    time.sleep(0.2)
 
     
 def led(red, green, blue):
@@ -601,6 +604,9 @@ def quit():
 
     if BUTTONS or LED or LCD:
 	GPIO.cleanup()
+
+    # Quit mplayer:
+    mp.quit()
 
     # Use sys.exit, rather than "raise":
     sys.exit("JunctionBox exited normally.")
