@@ -694,6 +694,9 @@ def quit():
 
     debug("Quitting.")
 
+    # Quit mplayer - do this first, so that there's user feedback to the keypress:
+    mp.quit()
+
     #save anything pending in the favourited log queue before quitting
     if favourited_log_queue != None:
         log_favourited(favourited_log_queue, episodes[current_episode])
@@ -706,9 +709,6 @@ def quit():
     if FAST_START:
         debug("FAST_START: Writing cache file.")
         pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
-
-    # Quit mplayer:
-    mp.quit()
 
     # Use sys.exit, rather than "raise":
     sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+episodes[current_episode]['firstbcastdate']+".\n")
