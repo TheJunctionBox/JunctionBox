@@ -31,6 +31,8 @@ Make rapid repeated navigation work instead of looping on the same track
 Refactor: make player and display objects (player object can raise events to get the display to update)
 
 Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directories)
+      Question is whether to do all sub-directories in DATA_DIRECTORY, or to list sub-dirs e.g. by date,
+      so that you can choose one.
 
 Tidy up the superfluous code in "lj_download_segments"
 

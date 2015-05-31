@@ -36,7 +36,8 @@ LINEWIDTH = 16          # Characters available on display (per line)
 DISPLAYHEIGHT = 2       # Lines available on display
 
 #Navigation options (not in .junctionbox yet)
-SKIP_TIME = 10
+SKIP_TIME_MEDIUM = 10
+SKIP_TIME_SHORT  = 1
 
 if BUTTONS or LED:
 	import RPi.GPIO as GPIO
@@ -187,7 +188,7 @@ def prev_track(channel=0):
         mp.time_pos = 0
 
 
-def skip_back():
+def skip_back(SKIP_TIME):
     if mp.time_pos > SKIP_TIME:
         mp.time_pos = mp.time_pos - SKIP_TIME
 
@@ -197,23 +198,24 @@ def adjust_track_start():
     current_time = mp.time_pos
     newtime = current_time - intro_offset
     # Work out which track boundary we are near:
-    currtr_diff = abs( current_time - episodes[current_episode]['tracks'][current_track]['seconds'])
-    nexttr_diff = abs( current_time - episodes[current_episode]['tracks'][current_track+1]['seconds'])
+    currtr_diff = abs( newtime - episodes[current_episode]['tracks'][current_track]['seconds'])
+    nexttr_diff = abs( newtime - episodes[current_episode]['tracks'][current_track+1]['seconds'])
     if (currtr_diff < nexttr_diff):
         adjust_track = current_track
     else:
         adjust_track = current_track + 1
+    time_diff = newtime - episodes[current_episode]['tracks'][adjust_track]['seconds']
     if newtime > 0: 
         episodes[current_episode]['tracks'][adjust_track]['seconds'] = newtime
-	debug("New start time set for track "+str(adjust_track+1)+", when playing "+str(current_track+1))
-    # Needs to be made persistent:
-    save_data()
+        # Needs to be made persistent:
+        save_data()
+	debug("Start time adjusted by "+str(time_diff)+"s, for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to .p file." )
 
 def play_pause(channel=0):
     play_pause()
 
 
-def skip_forward():
+def skip_forward(SKIP_TIME):
     # What happens when we go over the end?
     mp.time_pos = mp.time_pos + SKIP_TIME
 
@@ -540,8 +542,10 @@ def handle_keypress(c):
         prev_episode()
     elif c == ord('x'):
         prev_track()
+    elif c == ord(','):
+        skip_back(SKIP_TIME_SHORT)
     elif c == ord('<'):
-        skip_back()
+        skip_back(SKIP_TIME_MEDIUM)
     elif c == ord('c'):
         play_pause(True)
     elif c == ord('C'):
@@ -552,7 +556,9 @@ def handle_keypress(c):
     elif c == ord('b'):        
         next_episode()
     elif c == ord('>'):        
-        skip_forward()
+        skip_forward(SKIP_TIME_MEDIUM)
+    elif c == ord('.'):
+        skip_forward(SKIP_TIME_SHORT)
     elif c == ord('n'):
         mark_favourite()
     elif c == ord('/'):
