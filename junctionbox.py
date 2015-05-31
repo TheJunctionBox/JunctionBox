@@ -218,7 +218,7 @@ def mark_favourite(channel=0):
 
     episode = episodes[current_episode] 
     #B: This 
-    track = episode['tracks'][current_track]
+    track = episode['tracks'][current_track]  #B: Pass by ref vs. pass by value?
     #B: would be replaced by
     #track = tracks[current_track]
     track['favourite'] = not(track['favourite'])
@@ -646,6 +646,11 @@ def quit():
 
     if BUTTONS or LED or LCD:
 	GPIO.cleanup()
+
+    #B: This is needed because favourites setting modifies 'episodes'.
+    if FAST_START:
+        debug("FAST_START: Writing cache file.")
+        pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
 
     # Quit mplayer:
     mp.quit()
