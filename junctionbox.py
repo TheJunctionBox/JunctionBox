@@ -260,9 +260,9 @@ def mark_favourite(channel=0):
     global favourited_log_queue
 
     episode = episodes[current_episode] 
-    #B: This 
+    #B/tracks: This 
     track = episode['tracks'][current_track]  #B: Pass by ref vs. pass by value?
-    #B: would be replaced by
+    #B/tracks: would be replaced by
     #track = tracks[current_track]
     track['favourite'] = not(track['favourite'])
 
@@ -297,6 +297,7 @@ def save_data():
     episode = episodes[current_episode]
     tracks = episode['tracks']
     pid = episode['pid']
+    #B/SEGMENTS: reconstructing the location of the .p file from EPISODE_DIRECTORY is not ideal, because episodes may be in several locations.
     pickle.dump(tracks, open(os.path.join(EPISODE_DIRECTORY, pid + ".p"), "wb"))
 
 
@@ -434,7 +435,7 @@ def load_episodes():
             debug("Error parsing: "+metaDataFile)
             #exception will be raised if node is missing from xml
 
-        #B: My suggestion is to not load tracks here.
+        #B/tracks: My suggestion is to not load tracks here.
         segment_file_name = os.path.join(EPISODE_DIRECTORY, pid + ".p")
         tracks = get_segments(segment_file_name)
 
@@ -443,6 +444,8 @@ def load_episodes():
 
         episodes.append({'filename': filename, 'pid':pid, 'episode': episode,
                         'firstbcastdate': firstbcastdate, 'tracks': tracks})
+        #B/SEGMENTS:                     , 'tracksfile': segment_file_name})
+        #B/SEGMENTS: Further suggestion would be to construct the segment_file_name once, and save it within episodes.
 
     episodes.sort(key=lambda ep: ep['firstbcastdate'])
 
@@ -457,7 +460,7 @@ def play_episode(index):
     global player_status
     
     episode = episodes[index]
-    #B: Suggestion is load tracks here into a global var:
+    #B/tracks: Suggestion is load tracks here into a global var:
     #segment_file_name = os.path.join(EPISODE_DIRECTORY, episode['pid'] + ".p")
     #tracks = get_segments(segment_file_name)
     episode_file = episode['filename']
@@ -729,7 +732,7 @@ def quit():
     if BUTTONS or LED or LCD:
 	GPIO.cleanup()
 
-    #B: This is needed because favourites setting modifies 'episodes'.
+    #B/tracks: This is needed because favourites setting modifies 'episodes'. If tracks were loaded per episode, this would not be needed:
     if FAST_START:
         debug("FAST_START: Writing cache file.")
         pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
