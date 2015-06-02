@@ -129,6 +129,7 @@ def load_config():
                 UNPRINTABLE_CHAR = confitems['unprintable_char']
             if 'data_directory' in confitems:
                 DATA_DIRECTORY = confitems['data_directory']
+                EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
                 FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
             if 'fav_directory' in confitems:
                 FAV_DIRECTORY = confitems['fav_directory']
@@ -643,7 +644,7 @@ def main_loop(screen):
         #TODO when episode downloading is moved to junctionbox then it should
         #wait here while downloading instead of exiting. 
         #B: Though in an ideal world it would immediately play the one it's downloading.
-        sys.exit("can't find any episodes to play.")
+        sys.exit("Can't find any episodes to play in "+ DATA_DIRECTORY+ ", "+EPISODE_DIRECTORY)
 
     current_episode = len(episodes) - 1
     play_episode(current_episode)
