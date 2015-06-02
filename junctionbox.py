@@ -516,7 +516,7 @@ def led(red, green, blue):
             char = " "
         else:
             char = "*"    
-        stdscr.addstr(0,22, char, curses.color_pair(colour))
+        stdscr.addstr(0, 22, char, curses.color_pair(colour))
 
     else:
         #TODO show LED status on the LCD somehow
@@ -675,16 +675,16 @@ def main_loop(screen):
             last_track = current_track
             episode = episodes[current_episode]
             if current_track < 0:
-                scroller1 = Scroller("", episode['episode'], "      ")
-                scroller2 = Scroller("", episode['firstbcastdate'], "  ")
+                scroller1 = Scroller("", episode['episode'], "      ",    line_size=LINEWIDTH)
+                scroller2 = Scroller("", episode['firstbcastdate'], "  ", line_size=LINEWIDTH)
             else:
                 track = episode['tracks'][current_track]
                 artist = track['artist']
-                scroller1 = Scroller("", artist, "      ")
+                scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)
                 
                 track_no = str(current_track + 1) + " "
                 track_name =  track['track']
-                scroller2 = Scroller(track_no, track_name, "  ")
+                scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
 
                 show_favourite(track['favourite'])
 
@@ -711,7 +711,7 @@ def main_loop(screen):
             
 
         line2 = line2[0:LINEWIDTH-2].ljust(LINEWIDTH-2, " ") + " " + status
-        line1 = line1[0:LINEWIDTH-6] + " " + format_time(current_position)
+        line1 = line1[0:LINEWIDTH-6].ljust(LINEWIDTH-6, " ") + " " + format_time(current_position)
         
         display (line1, line2)
 
