@@ -97,7 +97,7 @@ def getboolean(mystring):
 
 def load_config():
     global DEBUG, BUTTONS, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
-        DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, \
+        DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, EPISODE_DIRECTORY, \
         FAST_START, FAST_START_CACHE_TIME, FAST_START_CACHE_FILE
 
     # Check for configuration files
@@ -399,13 +399,16 @@ def debug(msg, value=""):
 
 def get_episodes():
     #Decide whether to use cache or to read from EPISODE_DIR.
-
     if FAST_START:
         if not(os.path.exists(FAST_START_CACHE_FILE)) or (time.time() - os.path.getmtime(FAST_START_CACHE_FILE) > FAST_START_CACHE_TIME):
             debug("Fast start: Read episodes from EPISODE_DIR ...")
             episodes = load_episodes()
-            debug("Fast start: ... and write to cache: "+FAST_START_CACHE_FILE)
-            pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
+            #If no episodes were loaded, should not write cache file:
+            if len(episodes) > 0: 
+                debug("Fast start: ... and write to cache: "+FAST_START_CACHE_FILE)
+                pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
+            else:
+                debug("Fast start: ... no episodes were loaded.")
         else:
             debug("Fast start: Read episodes from cache: "+FAST_START_CACHE_FILE)
             episodes = pickle.load(open(FAST_START_CACHE_FILE, "rb"))
