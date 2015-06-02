@@ -146,7 +146,7 @@ def load_config():
         try:
             os.mkdir(DATA_DIRECTORY)
             debug("No data directory found. Creating data directory.")
-        else:
+        except:
             sys.exit("Failed to create DATA_DIRECTORY")
 
 
