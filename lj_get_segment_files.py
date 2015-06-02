@@ -60,6 +60,7 @@ def get_segment_files():
             if DEBUG: 
                 print 'Downloading to: ' + segment_file
             segment_html = urllib.urlopen('http://www.bbc.co.uk/programmes/' + pid + '/segments').read()
+            # Need to check that this worked, i.e. that segment_html is not empty!
             f = open(segment_file, 'w')
             f.write(segment_html)
             f.close()
@@ -73,6 +74,7 @@ def get_segment_files():
             if DEBUG: 
                 print "Creating: " + segment_data_file
             segment_data = parse_segment_html(segment_html)
+            # Should only save this if segments were retrieved - see comment in parse_segment_html()
             pickle.dump(segment_data, open(segment_data_file, "wb"))
 
 
