@@ -98,7 +98,7 @@ def getboolean(mystring):
 def load_config():
     global DEBUG, BUTTONS, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
         DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, \
-        FAST_START, FAST_START_CACHE_TIME
+        FAST_START, FAST_START_CACHE_TIME, FAST_START_CACHE_FILE
 
     # Check for configuration files
     configfile = os.path.join(expanduser("~"), ".junctionbox")
@@ -129,6 +129,7 @@ def load_config():
                 UNPRINTABLE_CHAR = confitems['unprintable_char']
             if 'data_directory' in confitems:
                 DATA_DIRECTORY = confitems['data_directory']
+                FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
             if 'fav_directory' in confitems:
                 FAV_DIRECTORY = confitems['fav_directory']
             if 'fast_start' in confitems:
@@ -403,7 +404,7 @@ def get_episodes():
             debug("Fast start: Read episodes from EPISODE_DIR ...")
             episodes = load_episodes()
             debug("Fast start: ... and write to cache: "+FAST_START_CACHE_FILE)
-            pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
+            pickle.dump(episode, open(FAST_START_CACHE_FILE, "wb"))
         else:
             debug("Fast start: Read episodes from cache: "+FAST_START_CACHE_FILE)
             episodes = pickle.load(open(FAST_START_CACHE_FILE, "rb"))
