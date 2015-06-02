@@ -80,7 +80,7 @@ def get_segment_files():
 
 def parse_segment_html(html):
     # expression needs to be improved to capture additional data (cf. todo.txt). Also note that sometimes times aren't present, in which case <div[^>]*>(\d\d):(\d\d)<\/div> is missing.
-    # Should maybe add (?:....) but need to make sure that this doesn't cause problems down the line.
+    # Should maybe add "(?:....)?" but need to make sure that this doesn't cause problems down the line. Most likely problem with older episodes only.
     expression = r'<div class="segment__track">\s*<div[^>]*>(\d\d):(\d\d)<\/div>.*?<span class="artist" [^>]*>([^<>]*)<\/span>.*?<span property="name">([^<>]*)<\/span>'
 
     p = re.compile(expression)
