@@ -143,9 +143,11 @@ def load_config():
         shutil.copyfile(default_config_file, configfile)
 
     if (not os.path.isdir(DATA_DIRECTORY)):
-        os.mkdir(DATA_DIRECTORY)
-        debug("No data directory found. Creating data directory.")
-
+        try:
+            os.mkdir(DATA_DIRECTORY)
+            debug("No data directory found. Creating data directory.")
+        else:
+            sys.exit("Failed to create DATA_DIRECTORY")
 
 
 class Event:
@@ -639,7 +641,8 @@ def main_loop(screen):
     if len(episodes) == 0:
         #TODO when episode downloading is moved to junctionbox then it should
         #wait here while downloading instead of exiting. 
-        sys.exit("can't find any episodes to play")
+        #B: Though in an ideal world it would immediately play the one it's downloading.
+        sys.exit("can't find any episodes to play.")
 
     current_episode = len(episodes) - 1
     play_episode(current_episode)
