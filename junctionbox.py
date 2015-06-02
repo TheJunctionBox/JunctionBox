@@ -40,8 +40,8 @@ LINEWIDTH = 16           # Characters available on display (per line)
 DISPLAYHEIGHT = 2        # Lines available on display
 
 #Navigation options (not in .junctionbox yet)
-SKIP_TIME_MEDIUM = 10
-SKIP_TIME_SHORT  = 1
+SKIP_TIME_MEDIUM = 60
+SKIP_TIME_SHORT  = 5
 
 EPISODE_FILE_PATTERN = "*.xml"
 
@@ -435,6 +435,7 @@ def load_episodes():
 
         try:
             pid = root.find(NAMESPACE + 'pid').text
+            # firstbcastdate is not in all xml
             firstbcastdate = root.find(NAMESPACE + 'firstbcastdate').text
             channel = root.find(NAMESPACE + 'channel').text
             # "band" is not present in older xml, and not used below, hence removed.
