@@ -227,15 +227,17 @@ def next_track(channel=0):
     global current_track
 
     episode = episodes[current_episode]
+    track_list = episode['tracks']
 
-    if current_track < len(episode['tracks']) - 1:
+    if current_track < len(track_list) - 1:
         current_track += 1
         
-    track_list = episode['tracks']
     display(">>", str(current_track + 1) + " / " + str(len(track_list)))
 
-    mp.time_pos = track_list[current_track]['seconds'] + intro_offset
-
+    try:
+        mp.time_pos = track_list[current_track]['seconds'] + intro_offset
+    except:
+        debug("Cannot advance track. len="+str(len(track_list))+", current_track="+str(current_track)+", pid="+episode['pid']+", date="+episode['firstbcastdate'])
     
 
 def next_episode(channel=0):
