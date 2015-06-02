@@ -11,6 +11,7 @@ TODO:
         Add back the second line of the display
 
     /Bug: fix display bug that eats non ascii chars leaving the string too short
+         (Needs further improvement - non-ascii display ok, but the string trimming doens't work well.)
 
     /create default location for data directory
     /create default config file and copy it to the default location (B: done?)
