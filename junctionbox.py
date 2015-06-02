@@ -447,6 +447,7 @@ def load_episodes():
 
         #B/tracks: My suggestion is to not load tracks here.
         segment_file_name = os.path.join(EPISODE_DIRECTORY, pid + ".p")
+	# The following fails if segment_file_name does not exist! Need to check!
         tracks = get_segments(segment_file_name)
 
         if len(tracks) == 0:
