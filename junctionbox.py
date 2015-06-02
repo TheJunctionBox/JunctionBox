@@ -404,7 +404,7 @@ def get_episodes():
             debug("Fast start: Read episodes from EPISODE_DIR ...")
             episodes = load_episodes()
             debug("Fast start: ... and write to cache: "+FAST_START_CACHE_FILE)
-            pickle.dump(episode, open(FAST_START_CACHE_FILE, "wb"))
+            pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
         else:
             debug("Fast start: Read episodes from cache: "+FAST_START_CACHE_FILE)
             episodes = pickle.load(open(FAST_START_CACHE_FILE, "rb"))
