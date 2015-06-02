@@ -18,87 +18,40 @@ import shutil
 
 
 #Default Options
-DEBUG = True        #enables debug print statements
-UNPRINTABLE_CHAR = "#"    # character to replace unprintable characters on the display
-DATA_DIRECTORY = os.path.join( expanduser("~"), "/jb_data")     #Default data directory
-FAV_DIRECTRORY = DATA_DIRECTORY
-FAST_START = False   # If 'True' reads cached episode information, as long as cache is not older than:
-FAST_START_CACHE_TIME = 24 * 60 * 60  # duration (in s for which episode information in cached
+DEBUG = True             # enables debug print statements
+UNPRINTABLE_CHAR = "#"   # character to replace unprintable characters on the display
+DATA_DIRECTORY = os.path.join(expanduser("~"), "jb_data")     #Default data directory
+FAV_DIRECTORY = DATA_DIRECTORY
+#TODO remove and search for subdirs instead
+EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
+FAVOURITED_LOG_FILE = "favourited.txt"
+FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
+DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
 
-#Hardware Options
-BUTTONS =  False        #set to True if buttons are present
-LCD =      False        #set to True if there is an LCD screen present
-LED =      False        #set to True if there is an RGB LED present
-KEYBOARD = True         #set to True if keyboard is present
-SCREEN =   True         #set to True if a monitor is present
-HIDE_CURSOR = True      # Cursor is hidden by default, but some curses libs don't support it.
-LINEWIDTH = 16          # Characters available on display (per line) 
-DISPLAYHEIGHT = 2       # Lines available on display
+FAST_START = False       # If 'True' reads cached episode information, as long as cache is not older than:
+FAST_START_CACHE_TIME = 24 * 60 * 60  # duration in s for which episode information in cached
+BUTTONS =  False         #set to True if buttons are present
+LCD =      False         #set to True if there is an LCD screen present
+LED =      False         #set to True if there is an RGB LED present
+KEYBOARD = True          #set to True if keyboard is present
+SCREEN =   True          #set to True if a monitor is present
+HIDE_CURSOR = True       # Cursor is hidden by default, but some curses libs don't support it.
+LINEWIDTH = 16           # Characters available on display (per line) 
+DISPLAYHEIGHT = 2        # Lines available on display
 
 #Navigation options (not in .junctionbox yet)
 SKIP_TIME_MEDIUM = 10
 SKIP_TIME_SHORT  = 1
 
-if BUTTONS or LED:
-	import RPi.GPIO as GPIO
-
-def getboolean(mystring):
-  return mystring == "True"
-
-# Check for configuration files
-configfile = os.path.join( expanduser("~"), ".junctionbox")
-Config = ConfigParser.ConfigParser()
-if os.path.isfile(configfile):  
-    Config.read(configfile)
-    if 'basic' in Config.sections():
-        confitems = dict(Config.items('basic'))
-        if 'debug' in confitems:
-            DEBUG = getboolean(confitems['debug'])
-        if 'buttons' in confitems:
-            BUTTONS = getboolean(confitems['buttons'])
-        if 'lcd' in confitems:
-            LCD = getboolean(confitems['lcd'])
-        if 'led' in confitems:
-            LED = getboolean(confitems['led'])
-        if 'keyboard' in confitems:
-            KEYBOARD = getboolean(confitems['keyboard'])
-        if 'screen' in confitems:
-            SCREEN = getboolean(confitems['screen'])
-        if 'hide_cursor' in confitems:
-            HIDE_CURSOR = getboolean(confitems['hide_cursor'])
-        if 'linewidth' in confitems:
-            LINEWIDTH = int(confitems['linewidth'])
-        if 'displayheight' in confitems:
-            DISPLAYHEIGHT = confitems['displayheight']
-        if 'unprintable_char' in confitems:
-            UNPRINTABLE_CHAR = confitems['unprintable_char']
-        if 'data_directory' in confitems:
-            DATA_DIRECTORY = confitems['data_directory']
-        if 'fav_directory' in confitems:
-            FAV_DIRECTORY = confitems['fav_directory']
-        if 'fast_start' in confitems:
-            FAST_START = getboolean(confitems['fast_start'])
-        if 'fast_start_cache_time' in confitems:
-            FAST_START_CACHE_TIME = int(confitems['fast_start_cache_time'])
-else:
-    #if there's no config file then copy over the default one
-    shutil.copyfile(".junctionbox", configfile)
-
-
-#TODO remove and search for subdirs instead
-EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
-if (not os.path.isdir(DATA_DIRECTORY)):
-    sys.exit("DATA_DIRECTORY '"+DATA_DIRECTORY+"' not found. Please check your preferences.")
-
-FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
-
 EPISODE_FILE_PATTERN = "*.xml"
-
-FAVOURITED_LOG_FILE = "favourited.txt"
-DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
 
 NAMESPACE = "{http://linuxcentre.net/xmlstuff/get_iplayer}"
 TICKER = ['-','\\','|','/']
+
+
+if BUTTONS or LED:
+	import RPi.GPIO as GPIO
+
 
 if BUTTONS or LED or LCD:
 	GPIO.setmode(GPIO.BCM)
@@ -121,12 +74,11 @@ if LED:
 	GPIO.setup(GREEN_PIN, GPIO.OUT)     #green
 	GPIO.setup(BLUE_PIN, GPIO.OUT)      #blue
 
-
 STOPPED = 0
 PLAYING = 1
 PAUSED = 2
 
-
+#main global variables
 intro_offset = 11   #offset in seconds of the start of the music
 current_episode = 0
 current_track = 0
@@ -138,6 +90,63 @@ main_display = None
 debug_display = None
 favourited_log_queue = None
 event_queue = []
+
+
+def getboolean(mystring):
+  return mystring == "True"
+
+def load_config():
+    global DEBUG, BUTTONS, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
+        DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, \
+        FAST_START, FAST_START_CACHE_TIME
+
+    # Check for configuration files
+    configfile = os.path.join(expanduser("~"), ".junctionbox")
+    Config = ConfigParser.ConfigParser()
+    if os.path.isfile(configfile):  
+        Config.read(configfile)
+        if 'basic' in Config.sections():
+            confitems = dict(Config.items('basic'))
+            if 'debug' in confitems:
+                DEBUG = getboolean(confitems['debug'])
+            if 'buttons' in confitems:
+                BUTTONS = getboolean(confitems['buttons'])
+            if 'lcd' in confitems:
+                LCD = getboolean(confitems['lcd'])
+            if 'led' in confitems:
+                LED = getboolean(confitems['led'])
+            if 'keyboard' in confitems:
+                KEYBOARD = getboolean(confitems['keyboard'])
+            if 'screen' in confitems:
+                SCREEN = getboolean(confitems['screen'])
+            if 'hide_cursor' in confitems:
+                HIDE_CURSOR = getboolean(confitems['hide_cursor'])
+            if 'linewidth' in confitems:
+                LINEWIDTH = int(confitems['linewidth'])
+            if 'displayheight' in confitems:
+                DISPLAYHEIGHT = confitems['displayheight']
+            if 'unprintable_char' in confitems:
+                UNPRINTABLE_CHAR = confitems['unprintable_char']
+            if 'data_directory' in confitems:
+                DATA_DIRECTORY = confitems['data_directory']
+            if 'fav_directory' in confitems:
+                FAV_DIRECTORY = confitems['fav_directory']
+            if 'fast_start' in confitems:
+                FAST_START = getboolean(confitems['fast_start'])
+            if 'fast_start_cache_time' in confitems:
+                FAST_START_CACHE_TIME = int(confitems['fast_start_cache_time'])
+    else:
+        #if there's no config file then copy over the default one
+        default_config_file = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), ".junctionbox")
+
+        shutil.copyfile(default_config_file, configfile)
+
+    if (not os.path.isdir(DATA_DIRECTORY)):
+        os.mkdir(DATA_DIRECTORY)
+        debug("No data directory found. Creating data directory.")
+
+
 
 class Event:
     def __init__(self, name, handlers = []):
@@ -361,19 +370,24 @@ def display(line1, line2):
 
 def debug(msg, value=""):
     if DEBUG and SCREEN:
+        text = msg
+
         if value != "":
-            text = msg + ": %s" % value
+            text = text + ": %s" % value
+
+        if debug_display != None:
+            max_yx = debug_display.getmaxyx()        
+
+            for i in range(0, len(text), max_yx[1]):
+                debug_display.addstr(max_yx[0]-1,0, text[i:i + max_yx[1]])
+                debug_display.scroll()
+
+            debug_display.hline(0,0, "-", max_yx[1])
+            # debug_display.refresh()
         else:
-            text = msg
+            # if debug_display doesn't (yet) exist, just print to stdout
+            print text
 
-        max_yx = debug_display.getmaxyx()        
-
-        for i in range(0, len(text), max_yx[1]):
-            debug_display.addstr(max_yx[0]-1,0, text[i:i + max_yx[1]])
-            debug_display.scroll()
-
-        debug_display.hline(0,0, "-", max_yx[1])
-#        debug_display.refresh()
 
 
 def get_episodes():
@@ -454,6 +468,7 @@ def play_episode(index):
     led(0,0,0)
     line1 = episode['episode']
     line2 = episode['firstbcastdate']
+
     display(line1, line2)
 
 
@@ -553,7 +568,7 @@ def handle_keypress(c):
         play_pause(True)
     elif c == ord('C'):
         play_pause(False)
-	debug("Play/pause bug fix")
+        debug("Play/pause bug fix")
     elif c == ord('v'):
         next_track()
     elif c == ord('b'):        
@@ -589,6 +604,8 @@ def log_favourited(track, episode):
 def main_loop(screen):
     global current_episode, episodes, stdscr, main_display, debug_display, favourited_log_queue
 
+    load_config()
+
     stdscr = screen
     main_display = curses.newwin(DISPLAYHEIGHT + 1,LINEWIDTH,1,0)    
     debug_display = curses.newwin(0, 0, DISPLAYHEIGHT + 2, 0)
@@ -599,6 +616,7 @@ def main_loop(screen):
             curses.curs_set(0)
         except:
             debug("Cannot hide cursor.")
+    
     curses.halfdelay(4)
     curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
@@ -613,10 +631,15 @@ def main_loop(screen):
 
     episodes = get_episodes()
     
+    if len(episodes) == 0:
+        #TODO when episode downloading is moved to junctionbox then it should
+        #wait here while downloading instead of exiting. 
+        sys.exit("can't find any episodes to play")
+
     current_episode = len(episodes) - 1
     play_episode(current_episode)
 
-    #sometimes mplayer doesn't report back length.
+    #sometimes mplayer doesn't report back length for a while.
     show_length = None
     while(show_length == None):
         show_length = mp.length
@@ -653,7 +676,7 @@ def main_loop(screen):
                 show_favourite(track['favourite'])
 
                 #if there is a track in the log queue when the track changes, log it.
-                #(presumably only done here, so that tracks can be unfavourited while the track is still playing)
+                #tracks can be unfavourited before the track changes.
                 if favourited_log_queue != None:
                     log_favourited(favourited_log_queue, episode)
                     favourited_log_queue = None                
@@ -688,6 +711,7 @@ def main_loop(screen):
             
         seeking = not(update_position())
 
+
 def quit():
     global favourited_log_queue
     global current_episode, current_track, current_position
@@ -710,9 +734,8 @@ def quit():
         debug("FAST_START: Writing cache file.")
         pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
 
-    # Use sys.exit, rather than "raise":
     sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+episodes[current_episode]['firstbcastdate']+".\n")
-    # raise           #if q is pressed then quit
+
 
 if __name__ == '__main__':
     curses.wrapper(main_loop)
