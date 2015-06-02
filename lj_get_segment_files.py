@@ -93,6 +93,7 @@ def parse_segment_html(html):
         artist = m.group(3)
         track = m.group(4)
         
+        #B: Tracks should have end-times. 
         data.append({'loc':loc, 'seconds':seconds, 'artist':artist, 'track':track,
                      'favourite':False, 'favourited':False, 'heard':False})
 
