@@ -625,6 +625,8 @@ def log_favourited(track, episode):
 
 def main_loop(screen):
     global current_episode, episodes, stdscr, main_display, debug_display, favourited_log_queue
+    # Surely needs: global current_track
+    global current_track
 
     load_config()
 
@@ -683,8 +685,8 @@ def main_loop(screen):
         if (last_track != current_track) or (last_episode != current_episode):
             last_track = current_track
             #B: Inserted this, because of issue below, see next try/except block:
-	    if (last_episode != current_episode):
-                current_track = -1   
+	    if last_episode != current_episode:
+                current_track = -1
             last_episode = current_episode
             episode = episodes[current_episode]
             if current_track < 0:
