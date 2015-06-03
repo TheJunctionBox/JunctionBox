@@ -135,10 +135,12 @@ def load_config():
                 # Update dependent directories:
                 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
                 FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
-                FAV_DIRECTORY = DATA_DIRECTORY
-                DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
+                if not('fav_directory' in confitems):
+                    FAV_DIRECTORY = DATA_DIRECTORY
+                    DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
             if 'fav_directory' in confitems:
                 FAV_DIRECTORY = confitems['fav_directory']
+                DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
             if 'fast_start' in confitems:
                 FAST_START = getboolean(confitems['fast_start'])
             if 'fast_start_cache_time' in confitems:
