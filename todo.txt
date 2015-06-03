@@ -16,6 +16,9 @@ Segment loading needs discussing. There's performance implications by loading al
 give that segments are saved when favourties are made, this can easily lead to inconsistencies after a crash.
 B's suggestion is to load segment files when needed.
 
+Bug: When going back through say 5 episodes, sometimes the tracks displayed are from the previous episode. I.e. the
+episode playing is not the same as the one for which tracks are displayed.
+
 Make rapid repeated navigation work instead of looping on the same track
 
 Find a way to show the "2/18" when navigating without it being instantly overwritten by the track name. 

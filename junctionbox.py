@@ -687,6 +687,7 @@ def main_loop(screen):
             #B: Inserted this, because of issue below, see next try/except block:
 	    if last_episode != current_episode:
                 current_track = -1
+                debug("New episode: "+episodes[current_episode]['pid']+", date="+episodes[current_episode]['firstbcastdate'])
             last_episode = current_episode
             episode = episodes[current_episode]
             if current_track < 0:
