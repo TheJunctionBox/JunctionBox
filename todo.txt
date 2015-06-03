@@ -10,8 +10,11 @@ Bug: fix display bug that eats non ascii chars leaving the string too short
     (Can the LCD display unicode chars? Maybe we don't need to strip them if we can get curses to work too)
     (Needs further improvement - non-ascii display ok, but the string trimming doens't work well.)
 
-
 Bug: Fix flashing of previous track in display when navigating
+
+Segment loading needs discussing. There's performance implications by loading all segments at start, and
+give that segments are saved when favourties are made, this can easily lead to inconsistencies after a crash.
+B's suggestion is to load segment files when needed.
 
 Make rapid repeated navigation work instead of looping on the same track
 

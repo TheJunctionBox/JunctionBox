@@ -681,20 +681,26 @@ def main_loop(screen):
     while(current_position < show_length):
 
         if (last_track != current_track) or (last_episode != current_episode):
-            last_episode = current_episode
             last_track = current_track
+            #B: Inserted this, because of issue below, see next try/except block:
+	    if (last_episode != current_episode):
+                current_track = -1   
+            last_episode = current_episode
             episode = episodes[current_episode]
             if current_track < 0:
                 scroller1 = Scroller("", episode['episode'], "      ",    line_size=LINEWIDTH)
                 scroller2 = Scroller("", episode['firstbcastdate'], "  ", line_size=LINEWIDTH)
             else:
-                track = episode['tracks'][current_track]
-                artist = track['artist']
-                scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)
+                try:
+                    track = episode['tracks'][current_track]
+                    artist = track['artist']
+                    scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)
                 
-                track_no = str(current_track + 1) + " "
-                track_name =  track['track']
-                scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
+                    track_no = str(current_track + 1) + " "
+                    track_name =  track['track']
+                    scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
+                except:
+                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+str(current_episode)+", len(episode[tracks])="+str(len(episode['tracks'])))
 
                 show_favourite(track['favourite'])
 
