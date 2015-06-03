@@ -20,13 +20,16 @@ import shutil
 #Default Options
 DEBUG = True             # enables debug print statements
 UNPRINTABLE_CHAR = "#"   # character to replace unprintable characters on the display
+
 DATA_DIRECTORY = os.path.join(expanduser("~"), "jb_data")     #Default data directory
+# Note: All directories dependent on DATA_DIRECTORY need to be updated in load_config(), because DATA_DIRECTORY can be set in user preferences, see "# Update dependent directories" below.
 FAV_DIRECTORY = DATA_DIRECTORY
 #TODO remove and search for subdirs instead
 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
 FAVOURITED_LOG_FILE = "favourited.txt"
-FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
+FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
+
 
 FAST_START = False       # If 'True' reads cached episode information, as long as cache is not older than:
 FAST_START_CACHE_TIME = 24 * 60 * 60  # duration in s for which episode information in cached
@@ -129,8 +132,10 @@ def load_config():
                 UNPRINTABLE_CHAR = confitems['unprintable_char']
             if 'data_directory' in confitems:
                 DATA_DIRECTORY = confitems['data_directory']
+                # Update dependent directories:
                 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
                 FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
+                FAV_DIRECTORY = DATA_DIRECTORY
                 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
             if 'fav_directory' in confitems:
                 FAV_DIRECTORY = confitems['fav_directory']
