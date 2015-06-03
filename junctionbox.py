@@ -131,6 +131,7 @@ def load_config():
                 DATA_DIRECTORY = confitems['data_directory']
                 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
                 FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
+                DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
             if 'fav_directory' in confitems:
                 FAV_DIRECTORY = confitems['fav_directory']
             if 'fast_start' in confitems:
