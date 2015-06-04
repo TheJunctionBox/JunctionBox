@@ -516,9 +516,10 @@ def check_and_fix_filename_sync_bug():
     #  This would work if mp.path didn't contain all sorts of random stuff!
     mpfile = mp.path
     if not(str(mpfile) == '' or str(mpfile) == episode_file):
-        debug("filename_sync_bug. hit="+str(fix_filename_counter))
-        debug("-->"+mpfile)
-        debug("-->"+episode_file)
+        if fix_filename_counter > 3:
+            debug("filename_sync_bug. hit="+str(fix_filename_counter))
+            debug("-->"+mpfile)
+            debug("-->"+episode_file)
         fix_filename_counter += 1
         if fix_filename_counter > 5:
             debug("Wrong file playing. Loading episode: "+str(current_episode))
