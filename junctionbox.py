@@ -94,6 +94,8 @@ debug_display = None
 favourited_log_queue = None
 event_queue = []
 
+# For use of following var, see  check_and_fix_filename_sync_bug()
+fix_filename_counter = 0
 
 def getboolean(mystring):
   return mystring == "True"
@@ -506,6 +508,26 @@ def play_episode(index):
     display(line1, line2)
 
 
+def check_and_fix_filename_sync_bug():
+    global current_position, current_track, current_episode
+    global fix_filename_counter
+    episode = episodes[current_episode]
+    episode_file = episode['filename']
+    #  This would work if mp.path didn't contain all sorts of random stuff!
+    mpfile = mp.path
+    if not(str(mpfile) == '' or str(mpfile) == episode_file):
+        debug("filename_sync_bug. hit="+str(fix_filename_counter))
+        debug("-->"+mpfile)
+        debug("-->"+episode_file)
+        fix_filename_counter += 1
+        if fix_filename_counter > 5:
+            debug("Wrong file playing. Loading episode: "+str(current_episode))
+            play_episode(current_episode)
+            fix_filename_counter = 0
+    else:
+        fix_filename_counter = 0
+
+
 def play_pause(normal):
     global player_status
 
@@ -587,6 +609,7 @@ def mute_unmute():
         # This doesn't work.
         mp.volume = 99.5
     debug("New volume: "+str(mp.volume))
+
 
 def handle_keypress(c):
 #If you add keys, please also add them to '?'
@@ -693,6 +716,8 @@ def main_loop(screen):
     led_state = 0
 
     while(current_position < show_length):
+
+        check_and_fix_filename_sync_bug()
 
         if (last_track != current_track) or (last_episode != current_episode):
             last_track = current_track
