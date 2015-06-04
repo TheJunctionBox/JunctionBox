@@ -101,7 +101,7 @@ def getboolean(mystring):
 def load_config():
     global DEBUG, BUTTONS, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
         DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, EPISODE_DIRECTORY, \
-        FAST_START, FAST_START_CACHE_TIME, FAST_START_CACHE_FILE
+        FAST_START, FAST_START_CACHE_TIME, FAST_START_CACHE_FILE, DIR_AND_FAVOURITED_LOG_FILE
 
     # Check for configuration files
     configfile = os.path.join(expanduser("~"), ".junctionbox")
@@ -158,6 +158,17 @@ def load_config():
             debug("No data directory found. Creating data directory.")
         except:
             sys.exit("Failed to create DATA_DIRECTORY")
+    else:
+        debug("DATA_DIRECTORY: "+DATA_DIRECTORY)   
+
+    if (not os.path.isdir(FAV_DIRECTORY)):
+        try:
+            debug("No FAV directory found.")
+            sys.exit("No FAV _DIRECTORY")
+        except:
+            pass
+    else:
+        debug("FAV_DIRECTORY: "+FAV_DIRECTORY)   
 
 
 class Event:
@@ -485,6 +496,7 @@ def play_episode(index):
     episode_file = episode['filename']
 
     mp.loadfile(episode_file)
+    #debug("mp.loadfile: "+episode_file)
     player_status = PLAYING
 
     led(0,0,0)
