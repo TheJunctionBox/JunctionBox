@@ -24,6 +24,7 @@ UNPRINTABLE_CHAR = "#"   # character to replace unprintable characters on the di
 DATA_DIRECTORY = os.path.join(expanduser("~"), "jb_data")     #Default data directory
 # Note: All directories dependent on DATA_DIRECTORY need to be updated in load_config(), because DATA_DIRECTORY can be set in user preferences, see "# Update dependent directories" below.
 FAV_DIRECTORY = DATA_DIRECTORY
+JB_DATABASE = os.path.join(DATA_DIRECTORY, "JB_DATABASE" )
 #TODO remove and search for subdirs instead
 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
 FAVOURITED_LOG_FILE = "favourited.txt"
@@ -141,9 +142,13 @@ def load_config():
                 if not('fav_directory' in confitems):
                     FAV_DIRECTORY = DATA_DIRECTORY
                     DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
+                if not('jb_database' in confitems):
+                    JB_DATABASE = os.path.join(DATA_DIRECTORY, "JB_DATABASE" )
             if 'fav_directory' in confitems:
                 FAV_DIRECTORY = confitems['fav_directory']
                 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
+            if 'jb_database' in confitems:
+                JB_DATABASE = confitems['jb_database']
             if 'fast_start' in confitems:
                 FAST_START = getboolean(confitems['fast_start'])
             if 'fast_start_cache_time' in confitems:
@@ -197,21 +202,37 @@ class Event_Queue:
 
 
 class Episodes_Database:
+
+    # Class-level variable to stop concurrent write access.
+    write_access = False
+
     def __init__(self, DB_Location):
         self.status = 0
         self.location = DB_Location
         if not(os.path.isdir(self.location)):
-            sys.exit("Exception in Episode_Database:")
+            sys.exit("Exception in Episode_Database: Directory not found")
+	self.locIndex = os.path.join(self.location+"index.p")
+        if not(os.path.isfile(self.locIndex)):
+            sys.exit("Exception in Episode_Database: No db information avaialble")
+        try:
+            self.index = pickle.load(open(self.locIndex, "rb"))
+            try:
+                if not(self.index.version == 0):
+                    sys.exit("Exception in Episode_Database: Wrong db version")
+            except:
+                sys.exit("Exception in Episode_Database: Error with index contents")
+        except:
+            sys.exit("Exception in Episode_Database: Error reading index")
 	self.locEpisodes = os.path.join(self.location+"episodes.p")
         if not(os.path.isfile(self.locEpisodes)):
-            sys.exit("Exception in Episode_Database:")
+            sys.exit("Exception in Episode_Database: No data")
         try:
             self.episodes = pickle.load(open(self.locEpisodes, "rb"))
         except:
-            sys.exit("Exception in Episode_Database:")
+            sys.exit("Exception in Episode_Database: Error reading data")
 	self.locTracks = os.path.join(self.location+"tracks")
         if not(os.path.isdir(self.locTracks)):
-            sys.exit("Exception in Episode_Database:")
+            sys.exit("Exception in Episode_Database: No tracks data")
 	self.loadedtrackspid = ""
 
     def nepisodes():
@@ -339,29 +360,43 @@ class Episodes_Database:
             return None
 
     def setseconds(self, current_episode, current_track, seconds):
+        if write_access:
+            sys.exit("Concurrent write to DB not supported.")
+        write_access = True
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
             self.tracks[current_track]['seconds'] = seconds
             self._savetracks(current_episode)
+            write_access = False
 	    return True
         else:
+            write_access = False
             return False
 
     def setfavourite(self, current_episode, current_track, favourite):
+        if write_access:
+            sys.exit("Concurrent write to DB not supported.")
+        write_access = True
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
             self.tracks[current_track]['favourite'] = favourite
             self._savetracks(current_episode)
+            write_access = False
 	    return True
         else:
+            write_access = False
             return False
 
     def addtrack(self, current_episode, current_track, title, artist, seconds):
+        if write_access:
+            sys.exit("Concurrent write to DB not supported.")
+        write_access = True
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
             self.tracks.append({'track': track, 'artist':artist, 'seconds': seconds})
 	    self.tracks.sort(key=lambda tr: tr['seconds'])
             self._savetracks(current_episode)
+            write_access = False
 
 
 
@@ -866,7 +901,7 @@ def main_loop(screen):
     display("Junction", "Box") 
     led(0,0,0)
 
-#db    ep = Episodes_Database(os.path.join(DATA_DIRECTORY,"JB_DATABASE"))
+#db    ep = Episodes_Database(JB_DATABASE)
     episodes = get_episodes()
     
     if len(episodes) == 0:
