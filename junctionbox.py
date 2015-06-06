@@ -93,6 +93,7 @@ main_display = None
 debug_display = None
 favourited_log_queue = None
 event_queue = []
+ep = None
 
 # For use of following var, see  check_and_fix_filename_sync_bug()
 fix_filename_counter = 0
@@ -193,7 +194,176 @@ class Event_Queue:
 
     def pop(self):
         self.event_queue
-       
+
+
+class Episodes_Database:
+    def __init__(self, DB_Location):
+        self.status = 0
+        self.location = DB_Location
+        if not(os.path.isdir(self.location)):
+            sys.exit("Exception in Episode_Database:")
+	self.locEpisodes = os.path.join(self.location+"episodes.p")
+        if not(os.path.isfile(self.locEpisodes)):
+            sys.exit("Exception in Episode_Database:")
+        try:
+            self.episodes = pickle.load(open(self.locEpisodes, "rb"))
+        except:
+            sys.exit("Exception in Episode_Database:")
+	self.locTracks = os.path.join(self.location+"tracks")
+        if not(os.path.isdir(self.locTracks)):
+            sys.exit("Exception in Episode_Database:")
+	self.loadedtrackspid = ""
+
+    def nepisodes():
+        return len(self.episodes)
+
+    def validepisode(self, current_episode):
+        if current_episode > -1 and current_episode < self.nepisodes - 1:
+            return True
+        else:
+            return False
+
+    def firstepisode(self, current_episode):
+        if self.validepisode(current_episode):
+            if current_episode == 0:
+                return True
+            else:
+                return False
+        else:
+            return None
+
+    def lastepisode(self, current_episode):
+        if self.validepisode(current_episode):
+            if current_episode == self.nepisodes() - 1:
+                return True
+            else:
+                return False
+        else:
+            return None
+
+    def title(self, current_episode):
+        if self.validepisode(current_episode):
+            return self.episodes[current_episode]['episode']    
+        else:
+            return None
+
+    def pid(self, current_episode):
+        if self.validepisode(current_episode):
+            return self.episodes[current_episode]['pid']    
+        else:
+            return None
+
+    def filename(self, current_episode):
+        if self.validepisode(current_episode):
+            return self.episodes[current_episode]['filename']    
+        else:
+            return None
+
+    def date(self, current_episode):
+        if self.validepisode(current_episode):
+            return self.episodes[current_episode]['firstbcastdate']    
+        else:
+            return None
+
+    def _trackfile(self, current_episide):
+        return os.path.join(self.locTracks, self.pid(current_episide) + ".p")
+
+    def _loadtracks(self,  current_episode):
+        if self.validepisode(current_episode):
+            if not(self.loadedtrackspid = self.pid(current_episode)):
+                self.tracks = pickle.load(open(self._trackfile(current_episode)),"rb")
+                self.loadedtrackspid = self.pid(current_episode)
+        else:
+           return None
+
+    def _savetracks(self,  current_episode):
+        pickle.dump(tracks, open(self._trackfile(current_episode)), "wb")
+
+    def ntracks(self,  current_episode):
+        self._loadtracks(current_episode)
+        return len(self.tracks)
+
+    def firsttrack(self, current_episode, current_track):
+        self._loadtracks(current_episode)
+        if self.validtrack(current_episode, current_track):
+            if current_track == 0:
+                return True
+            else:
+                return False
+        else:
+            return None
+
+    def lasttrack(self, current_episode, current_track):
+        self._loadtracks(current_episode)
+        if self.validtrack(current_episode, current_track):
+            if current_track == self.ntracks(current_episode) - 1:
+                return True
+            else:
+                return False
+        else:
+            return None
+
+    def validtrack(self, current_episode, current_track):
+        self._loadtracks(current_episode)
+        if self.validepisode(current_episode) and current_track > -1 and current_track < self.ntracks -1:
+            return True
+        else:
+            return None
+
+    def tracktitle(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            return self.tracks[current_track]['track']
+        else:
+            return None
+
+    def trackartist(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            return self.tracks[current_track]['artist']
+        else:
+            return None
+
+    def seconds(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            return self.tracks[current_track]['seconds']
+        else:
+            return None
+
+    def favourite(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            return self.tracks[current_track]['favourite']
+        else:
+            return None
+
+    def setseconds(self, current_episode, current_track, seconds):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            self.tracks[current_track]['seconds'] = seconds
+            self._savetracks(current_episode)
+	    return True
+        else:
+            return False
+
+    def setfavourite(self, current_episode, current_track, favourite):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            self.tracks[current_track]['favourite'] = favourite
+            self._savetracks(current_episode)
+	    return True
+        else:
+            return False
+
+    def addtrack(self, current_episode, current_track, title, artist, seconds):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            self.tracks.append({'track': track, 'artist':artist, 'seconds': seconds})
+	    self.tracks.sort(key=lambda tr: tr['seconds'])
+            self._savetracks(current_episode)
+
+
 
 mp = mpylayer.MPlayerControl()
 
@@ -201,10 +371,12 @@ def prev_episode(channel=0):
     global current_episode
 
     display("|<", str(current_episode + 1) + " / " + str(len(episodes)))
+#db    if not(ep.firstepisode(current_episode)):
+#        current_episode -= 1
+#        play_episode(current_episode)
     if current_episode > 0:
         current_episode -= 1
         play_episode(current_episode)
-
 
 def prev_track(channel=0):
     global current_track
@@ -214,6 +386,9 @@ def prev_track(channel=0):
     track_list = episode['tracks']
     display("<<", str(current_track + 1) + " / " + str(len(track_list)))
 
+# db   if not(ep.firsttrack(current_episode,current_track)):
+#        current_track -= 1
+#        mp.time_pos = ep.seconds(current_episode, current_track) + intro_offset
     if current_track > 0:
         current_track -= 1
         mp.time_pos = track_list[current_track]['seconds'] + intro_offset
@@ -263,6 +438,7 @@ def next_track(channel=0):
     episode = episodes[current_episode]
     track_list = episode['tracks']
 
+#db    if not(ep.lasttrack(current_episode, current_trac)):
     if current_track < len(track_list) - 1:
         current_track += 1
         
@@ -278,6 +454,7 @@ def next_episode(channel=0):
     global current_episode
     
     display(">|", str(current_episode + 1) + " / " + str(len(episodes)))
+#db    if not(ep.lastepisode(current_episode)):
     if current_episode < len(episodes) - 1:
         current_episode += 1
         play_episode(current_episode)
@@ -287,10 +464,8 @@ def mark_favourite(channel=0):
     global favourited_log_queue
 
     episode = episodes[current_episode] 
-    #B/tracks: This 
-    track = episode['tracks'][current_track]  #B: Pass by ref vs. pass by value?
-    #B/tracks: would be replaced by
-    #track = tracks[current_track]
+    track = episode['tracks'][current_track] 
+    # ep.setfavourite(current_episode,current_track,not(ep.favourite(current_episode,current_track)))
     track['favourite'] = not(track['favourite'])
 
     if favourited_log_queue != None:
@@ -306,6 +481,7 @@ def mark_favourite(channel=0):
         if track['favourite']:
             favourited_log_queue = track
 
+#    show_favourite(ep.favourite(current_episode,current_track))
     show_favourite(track['favourite'])
     save_data()
     
@@ -320,6 +496,7 @@ if BUTTONS:
 	GPIO.add_event_detect(12, GPIO.FALLING, callback=mark_favourite, bouncetime=300)
 
 
+#db: To be Removed.
 def save_data():
     episode = episodes[current_episode]
     tracks = episode['tracks']
@@ -417,7 +594,7 @@ def debug(msg, value=""):
             print text
 
 
-
+#db: Replace by db connection
 def get_episodes():
     #Decide whether to use cache or to read from EPISODE_DIR.
     if FAST_START:
@@ -438,7 +615,7 @@ def get_episodes():
 
     return episodes
 
-
+#db: To be Removed.
 def load_episodes():
     #open every meta data file and get the media file and a displayable name
 
@@ -483,7 +660,7 @@ def load_episodes():
 
     return episodes        
 
-
+#db: To be removed
 def get_segments(filename):
     return pickle.load(open(filename, "rb"))
 
@@ -689,6 +866,7 @@ def main_loop(screen):
     display("Junction", "Box") 
     led(0,0,0)
 
+#db    ep = Episodes_Database(os.path.join(DATA_DIRECTORY,"JB_DATABASE"))
     episodes = get_episodes()
     
     if len(episodes) == 0:
@@ -697,6 +875,7 @@ def main_loop(screen):
         #B: Though in an ideal world it would immediately play the one it's downloading.
         sys.exit("Can't find any episodes to play in "+ DATA_DIRECTORY+ ", "+EPISODE_DIRECTORY)
 
+#db    current_episode = ep.nepisodes() - 1
     current_episode = len(episodes) - 1
     play_episode(current_episode)
 
