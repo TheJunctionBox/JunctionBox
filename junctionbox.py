@@ -233,7 +233,7 @@ class Episodes_Database:
 	self.locTracks = os.path.join(self.location+"tracks")
         if not(os.path.isdir(self.locTracks)):
             sys.exit("Exception in Episode_Database: No tracks data")
-	self.loadedtrackspid = ""
+	self.loadedtrackpid = ""
 
     def nepisodes():
         return len(self.episodes)
@@ -291,9 +291,9 @@ class Episodes_Database:
 
     def _loadtracks(self,  current_episode):
         if self.validepisode(current_episode):
-            if not(self.loadedtrackspid = self.pid(current_episode)):
+            if not(self.loadedtrackpid == self.pid(current_episode)):
                 self.tracks = pickle.load(open(self._trackfile(current_episode)),"rb")
-                self.loadedtrackspid = self.pid(current_episode)
+                self.loadedtrackpid = self.pid(current_episode)
         else:
            return None
 
