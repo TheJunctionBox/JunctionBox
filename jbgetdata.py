@@ -114,8 +114,10 @@ def parse_segment_html(html):
 
     return data
 
+def get_episodes_audio():
+    # call get_iplayer
 
-def get_episodes():
+def get_episodes_metadata():
     #open every meta data file and get the media file and a displayable name
 
     episodes = []
@@ -170,9 +172,11 @@ if __name__ == "__main__":
     except:
         sys.exit("Failed to create directories: "+JB_DATABASE)
 
+    get_episodes_audio()
+
     if DEBUG: 
         print 'Getting episodes' 
-    episodes = get_episodes()
+    episodes = get_episodes_metadata()
 #    episodes = pickle.load(open(os.path.join(JB_DATABASE,"episodes.p"), "rb"))
 
     if DEBUG: 
