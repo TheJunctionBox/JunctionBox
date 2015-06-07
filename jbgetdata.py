@@ -109,7 +109,7 @@ def parse_segment_html(html):
         track = m.group(4)
         
         #B: Tracks should have end-times. 
-        data.append({'loc':loc, 'seconds':seconds, 'artist':artist, 'track':track,'ends':0,
+        data.append({'loc':loc, 'seconds':seconds, 'artist':artist, 'track':track,'ends': -1,
                      'favourite':False, 'favourited':False, 'heard':False})
 
     return data
@@ -191,6 +191,14 @@ def get_episodes():
 
 
 if __name__ == "__main__":
+    try:
+        if not( os.path.isdir(JB_DATABASE)):
+            os.mkdir(JB_DATABASE)
+        if not( os.path.isdir(JB_DATABASE_TRACKS)):
+            os.mkdir(JB_DATABASE_TRACKS)
+    except:
+        sys.exit("Failed to create directories: "+JB_DATABASE)
+
     if DEBUG: 
         print 'Getting episodes' 
     episodes = get_episodes()

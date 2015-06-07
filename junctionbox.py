@@ -25,8 +25,6 @@ DATA_DIRECTORY = os.path.join(expanduser("~"), "jb_data")     #Default data dire
 # Note: All directories dependent on DATA_DIRECTORY need to be updated in load_config(), because DATA_DIRECTORY can be set in user preferences, see "# Update dependent directories" below.
 FAV_DIRECTORY = DATA_DIRECTORY
 JB_DATABASE = os.path.join(DATA_DIRECTORY, "JB_DATABASE" )
-#TODO remove and search for subdirs instead
-EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
 FAVOURITED_LOG_FILE = "favourited.txt"
 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
 
@@ -88,7 +86,7 @@ player_status = STOPPED
 stdscr = None
 main_display = None
 debug_display = None
-favourited_log_queue = None
+favourited_log_string = None
 event_queue = []
 ep = None
 
@@ -102,8 +100,8 @@ def getboolean(mystring):
 
 def load_config():
     global DEBUG, BUTTONS, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
-        DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, EPISODE_DIRECTORY, \
-        DIR_AND_FAVOURITED_LOG_FILE
+        DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, \
+        DIR_AND_FAVOURITED_LOG_FILE, JB_DATABASE
 
     # Check for configuration files
     configfile = os.path.join(expanduser("~"), ".junctionbox")
@@ -135,7 +133,6 @@ def load_config():
             if 'data_directory' in confitems:
                 DATA_DIRECTORY = confitems['data_directory']
                 # Update dependent directories:
-                EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
                 if not('fav_directory' in confitems):
                     FAV_DIRECTORY = DATA_DIRECTORY
                     DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
@@ -203,37 +200,39 @@ class Episodes_Database:
     def __init__(self, DB_Location):
         self.status = 0
         self.location = DB_Location
+        self.episodes = None
+        self.tracks = None
         if not(os.path.isdir(self.location)):
-            sys.exit("Exception in Episode_Database: Directory not found")
-	self.locIndex = os.path.join(self.location+"index.p")
-        if not(os.path.isfile(self.locIndex)):
-            sys.exit("Exception in Episode_Database: No db information avaialble")
-        try:
-            self.index = pickle.load(open(self.locIndex, "rb"))
-            try:
-                if not(self.index['version'] == 0):
-                    sys.exit("Exception in Episode_Database: Wrong db version")
-            except:
-                sys.exit("Exception in Episode_Database: Error with index contents")
-        except:
-            sys.exit("Exception in Episode_Database: Error reading index")
-	self.locEpisodes = os.path.join(self.location+"episodes.p")
+            sys.exit("Exception in Episode_Database: Directory not found at " + self.location)
+#	self.locIndex = os.path.join(self.location+"index.p")
+#        if not(os.path.isfile(self.locIndex)):
+#            sys.exit("Exception in Episode_Database: No db information avaialble")
+#        try:
+#            self.index = pickle.load(open(self.locIndex, "rb"))
+#            try:
+#                if not(self.index['version'] == 0):
+#                    sys.exit("Exception in Episode_Database: Wrong db version")
+#            except:
+#                sys.exit("Exception in Episode_Database: Error with index contents")
+#        except:
+#            sys.exit("Exception in Episode_Database: Error reading index")
+	self.locEpisodes = os.path.join(self.location, "episodes.p")
         if not(os.path.isfile(self.locEpisodes)):
             sys.exit("Exception in Episode_Database: No data")
         try:
             self.episodes = pickle.load(open(self.locEpisodes, "rb"))
         except:
             sys.exit("Exception in Episode_Database: Error reading data")
-	self.locTracks = os.path.join(self.location+"tracks")
+	self.locTracks = os.path.join(self.location, "tracks")
         if not(os.path.isdir(self.locTracks)):
             sys.exit("Exception in Episode_Database: No tracks data")
 	self.loadedtrackpid = ""
 
-    def nepisodes():
+    def nepisodes(self):
         return len(self.episodes)
 
     def validepisode(self, current_episode):
-        if current_episode > -1 and current_episode < self.nepisodes - 1:
+        if current_episode > -1 and current_episode < self.nepisodes():
             return True
         else:
             return False
@@ -272,6 +271,7 @@ class Episodes_Database:
         if self.validepisode(current_episode):
             return self.episodes[current_episode]['filename']    
         else:
+            sys.exit("File name for "+str(current_episode) + " out of " + str(self.nepisodes()) + " not found.")
             return None
 
     def date(self, current_episode):
@@ -286,13 +286,13 @@ class Episodes_Database:
     def _loadtracks(self,  current_episode):
         if self.validepisode(current_episode):
             if not(self.loadedtrackpid == self.pid(current_episode)):
-                self.tracks = pickle.load(open(self._trackfile(current_episode)),"rb")
+                self.tracks = pickle.load(open(self._trackfile(current_episode),"rb"))
                 self.loadedtrackpid = self.pid(current_episode)
         else:
            return None
 
     def _savetracks(self,  current_episode):
-        pickle.dump(tracks, open(self._trackfile(current_episode)), "wb")
+        pickle.dump(self.tracks, open(self._trackfile(current_episode), "wb"))
 
     def ntracks(self,  current_episode):
         self._loadtracks(current_episode)
@@ -320,7 +320,7 @@ class Episodes_Database:
 
     def validtrack(self, current_episode, current_track):
         self._loadtracks(current_episode)
-        if self.validepisode(current_episode) and current_track > -1 and current_track < self.ntracks -1:
+        if self.validepisode(current_episode) and current_track > -1 and current_track < self.ntracks(current_episode):
             return True
         else:
             return None
@@ -354,48 +354,48 @@ class Episodes_Database:
             return None
 
     def setseconds(self, current_episode, current_track, seconds):
-        if write_access:
+        if self.write_access:
             sys.exit("Concurrent write to DB not supported.")
-        write_access = True
+        self.write_access = True
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
             self.tracks[current_track]['seconds'] = seconds
             self._savetracks(current_episode)
-            write_access = False
+            self.write_access = False
 	    return True
         else:
-            write_access = False
+            self.write_access = False
             return False
 
     def setfavourite(self, current_episode, current_track, favourite):
-        if write_access:
+        if self.write_access:
             sys.exit("Concurrent write to DB not supported.")
-        write_access = True
+        self.write_access = True
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
             self.tracks[current_track]['favourite'] = favourite
             self._savetracks(current_episode)
-            write_access = False
+            self.write_access = False
 	    return True
         else:
-            write_access = False
+            self.write_access = False
             return False
 
     def addtrack(self, current_episode, current_track, title, artist, seconds):
-        if write_access:
+        if self.write_access:
             sys.exit("Concurrent write to DB not supported.")
-        write_access = True
+        self.write_access = True
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
             self.tracks.append({'track': track, 'artist':artist, 'seconds': seconds})
 	    self.tracks.sort(key=lambda tr: tr['seconds'])
             self._savetracks(current_episode)
-            write_access = False
+            self.write_access = False
 
 def prev_episode(channel=0):
     global current_episode
 
-    display("|<", str(current_episode + 1) + " / " + str(len(episodes)))
+    display("|<", str(current_episode + 1) + " / " + str(ep.nepisodes()))
     if not(ep.firstepisode(current_episode)):
         current_episode -= 1
         play_episode(current_episode)
@@ -403,10 +403,7 @@ def prev_episode(channel=0):
 def prev_track(channel=0):
     global current_track
 
-    episode = episodes[current_episode]
-  
-    track_list = episode['tracks']
-    display("<<", str(current_track + 1) + " / " + str(len(track_list)))
+    display("<<", str(current_track + 1) + " / " + str(ep.ntracks(current_episode)))
 
     if not(ep.firsttrack(current_episode,current_track)):
         current_track -= 1
@@ -425,22 +422,24 @@ def adjust_track_start():
     global current_track
     current_time = mp.time_pos
     newtime = current_time - intro_offset
-    if current_track < len(episodes[current_episode]['tracks']) -1:
-        # Work out which track boundary we are near:
-        currtr_diff = abs( newtime - episodes[current_episode]['tracks'][current_track]['seconds'])
-        nexttr_diff = abs( newtime - episodes[current_episode]['tracks'][current_track+1]['seconds'])
-        if (currtr_diff < nexttr_diff):
+    if current_track == - 1:
+        adjust_track = current_track + 1
+    else: 
+        if current_track == ep.ntracks(current_episode) - 1:
             adjust_track = current_track
         else:
-            adjust_track = current_track + 1
-    else:
-        adjust_track = current_track	    
-    time_diff = newtime - episodes[current_episode]['tracks'][adjust_track]['seconds']
+            # Work out which track boundary we are near:
+            currtr_diff = abs( newtime - ep.seconds(current_episode, current_track))
+            nexttr_diff = abs( newtime - ep.seconds(current_episode, current_track+1))
+            if (currtr_diff < nexttr_diff):
+                adjust_track = current_track
+            else:
+                adjust_track = current_track + 1
+    time_diff = newtime - ep.seconds(current_episode, adjust_track)
+    oldtime = ep.seconds(current_episode, adjust_track)
     if newtime > 0: 
-        episodes[current_episode]['tracks'][adjust_track]['seconds'] = newtime
-        # Needs to be made persistent:
-        save_data()
-	debug("Start time adjusted by "+str(time_diff)+"s, for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to .p file." )
+        ep.setseconds(current_episode, adjust_track, newtime)
+	debug("Start time adjusted by "+str(time_diff)+"s, from "+str(oldtime) + " to " + str(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db." )
 
 def play_pause(channel=0):
     play_pause()
@@ -454,54 +453,49 @@ def skip_forward(SKIP_TIME):
 def next_track(channel=0):
     global current_track
 
-    episode = episodes[current_episode]
-    track_list = episode['tracks']
-
-    if not(ep.lasttrack(current_episode, current_trac)):
+    if not(ep.lasttrack(current_episode, current_track)):
         current_track += 1
         
-    display(">>", str(current_track + 1) + " / " + str(len(track_list)))
+    display(">>", str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
 
     try:
-        mp.time_pos = track_list[current_track]['seconds'] + intro_offset
+        mp.time_pos = ep.seconds(current_episode, current_track) + intro_offset
     except:
-        debug("Cannot advance track. len="+str(len(track_list))+", current_track="+str(current_track)+", pid="+episode['pid']+", date="+episode['firstbcastdate'])
+        debug("Cannot advance track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
     
 
 def next_episode(channel=0):
     global current_episode
     
-    display(">|", str(current_episode + 1) + " / " + str(len(episodes)))
+    display(">|", str(current_episode + 1) + " / " + str(ep.nepisodes()))
     if not(ep.lastepisode(current_episode)):
         current_episode += 1
         play_episode(current_episode)
 
 
+def get_fav_log_string(episode,track):
+    data = ep.tracktitle(episode,track) + "\n" + ep.trackartist(episode,track) + "\n" + \
+           ep.title(episode) + "  " + ep.date(episode) + "\n" + \
+	   "http://www.bbc.co.uk/programmes/" + ep.pid(episode) + "\n\n"
+    return data
+
+
 def mark_favourite(channel=0):
-    global favourited_log_queue
+    global favourited_log_string
 
-    episode = episodes[current_episode] 
-    track = episode['tracks'][current_track] 
+    logdata = get_fav_log_string(current_episode,current_track)
     ep.setfavourite(current_episode,current_track,not(ep.favourite(current_episode,current_track)))
-#    track['favourite'] = not(track['favourite'])
-
-    if favourited_log_queue != None:
+    if favourited_log_string != None:
         #if the current track has been un-favourited then take it off the log queue
-
         #if there is another track on the queue then write it to the log file
-        if favourited_log_queue != track:
-            log_favourited(favourited_log_queue, episode)
-
-
-        favourited_log_queue = None
+        if favourited_log_string != logdata:
+            log_favourited(favourited_log_string)
+        favourited_log_string = None
     else:
-        if track['favourite']:
-            favourited_log_queue = track
+        if ep.favourite(current_episode,current_track):
+            favourited_log_string = logdata
 
     show_favourite(ep.favourite(current_episode,current_track))
-#    show_favourite(track['favourite'])
-    save_data()
-    
 
 
 if BUTTONS:
@@ -529,12 +523,9 @@ def update_position():
 
         current_position = pos
 
-        episode = episodes[current_episode]
-        tracks = episode['tracks']
-
-        track_index = len(tracks) - 1
-        for i in range(len(tracks)):
-            if tracks[i]['seconds'] + intro_offset > pos:
+        track_index = ep.ntracks(current_episode) - 1
+        for i in range(ep.ntracks(current_episode)):
+            if ep.seconds(current_episode, i ) + intro_offset > pos:
                 track_index = i - 1
                 break
 
@@ -605,19 +596,18 @@ def debug(msg, value=""):
 def play_episode(index):
     global player_status
     
-    episode = episodes[index]
-    #B/tracks: Suggestion is load tracks here into a global var:
-    #segment_file_name = os.path.join(EPISODE_DIRECTORY, episode['pid'] + ".p")
-    #tracks = get_segments(segment_file_name)
-    episode_file = episode['filename']
+    episode_file = ep.filename(index)
 
-    mp.loadfile(episode_file)
-    #debug("mp.loadfile: "+episode_file)
+    try:
+        mp.loadfile(episode_file)
+        #debug("mp.loadfile: "+episode_file)
+    except:
+        sys.exit("Cannot play " + str(episode_file) + " " + str(index) + ".")
     player_status = PLAYING
 
     led(0,0,0)
-    line1 = episode['episode']
-    line2 = episode['firstbcastdate']
+    line1 = ep.title(index)
+    line2 = ep.date(index)
 
     display(line1, line2)
 
@@ -625,8 +615,7 @@ def play_episode(index):
 def check_and_fix_filename_sync_bug():
     global current_position, current_track, current_episode
     global fix_filename_counter
-    episode = episodes[current_episode]
-    episode_file = episode['filename']
+    episode_file = ep.filename(current_episode)
     #  This would work if mp.path didn't contain all sorts of random stuff!
     mpfile = mp.path
     if not(str(mpfile) == '' or str(mpfile) == episode_file):
@@ -762,22 +751,17 @@ def handle_keypress(c):
 
 #Write a human readable log file of tracks that have been favourited.
 #Note: a track is deliberately not removed from the log file if later un-favourited. 
-def log_favourited(track, episode):
+def log_favourited(data):
     f = open(os.path.join(DIR_AND_FAVOURITED_LOG_FILE), "a")
-    
-    data = track['track'] + "\n" + track['artist'] + "\n" + \
-           episode['episode'] + "  " + episode['firstbcastdate'] + "\n" + \
-	   "http://www.bbc.co.uk/programmes/" + episode['pid'] + "\n\n"
-
     f.write(data)
     f.close
     
 
 def main_loop(screen):
-    global current_episode, stdscr, main_display, debug_display, favourited_log_queue
+    global current_episode, stdscr, main_display, debug_display, favourited_log_string
     # Surely needs: global current_track
     global current_track
-    global ep
+    global ep, JB_DATABASE
 
     load_config()
 
@@ -806,11 +790,11 @@ def main_loop(screen):
 
     ep = Episodes_Database(JB_DATABASE)
     
-    if len(ep) == 0:
+    if ep.nepisodes() == 0:
         #TODO when episode downloading is moved to junctionbox then it should
         #wait here while downloading instead of exiting. 
         #B: Though in an ideal world it would immediately play the one it's downloading.
-        sys.exit("Can't find any episodes to play in "+ DATA_DIRECTORY+ ", "+EPISODE_DIRECTORY)
+        sys.exit("Can't find any episodes to play in "+ JB_DATABASE)
 
     current_episode = ep.nepisodes() - 1
     play_episode(current_episode)
@@ -849,20 +833,20 @@ def main_loop(screen):
             else:
                 try:
                     track_name = ep.tracktitle(current_episode,current_track)
-                    artist = ep.artist(current_episode,current_track)
+                    artist = ep.trackartist(current_episode,current_track)
                     scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)                
-                    track_no = str(current_track + 1) + " "
+                    track_no  = str(current_track + 1) + " "
                     scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
                 except:
-                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+str(current_episode)+", len(episode[tracks])="+str(ep.ntracks()))
+                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+str(current_episode)+", len(episode[tracks])="+str(ep.ntracks(current_episode)))
 
                 show_favourite(ep.favourite(current_episode,current_track))
 
                 #if there is a track in the log queue when the track changes, log it.
                 #tracks can be unfavourited before the track changes.
-                if favourited_log_queue != None:
-                    log_favourited(favourited_log_queue, episode)
-                    favourited_log_queue = None                
+                if favourited_log_string != None:
+                    log_favourited(favourited_log_string)
+                    favourited_log_string = None                
 
 
 
@@ -896,7 +880,7 @@ def main_loop(screen):
 
 
 def quit():
-    global favourited_log_queue
+    global favourited_log_string
     global current_episode, current_track, current_position
 
     debug("Quitting.")
@@ -905,9 +889,9 @@ def quit():
     mp.quit()
 
     #save anything pending in the favourited log queue before quitting
-    if favourited_log_queue != None:
-        log_favourited(favourited_log_queue, episodes[current_episode])
-        favourited_log_queue = None
+    if favourited_log_string != None:
+        log_favourited(favourited_log_string)
+        favourited_log_string = None
 
     if BUTTONS or LED or LCD:
 	GPIO.cleanup()
