@@ -193,6 +193,28 @@ class Event_Queue:
 
 
 class Episodes_Database:
+# Some brief documentation:
+
+# nepisodes(): Returns number of episodes avaialble.
+
+# title(current_episode): Returns the title of the current_episode
+# pid(current_episode): Returns the pid of the current_episode
+# filename(current_episode): Returns the full path/filename of the current_episode
+# date(current_episode): Returns the firstbcastdate of the current_episode
+# ntracks(current_episode):  Returns the number of tracks in the current_episode
+# firstepisode(current_episode): True if current_episode is the first episode
+# lastepisode(current_episode): True if current_episode is the last episode
+
+# tracktitle(current_episode, current_track): Title of current_track in current_episode
+# trackartist(current_episode, current_track): Artist of current_track in current_episode
+# firsttrack(current_episode, current_track): True if current_track is the first track in current_episode
+# lasttrack(current_episode, current_track): True if current_track is the last track in current_episode
+# favourite(current_episode, current_track): Favourite status of current_track in current_episode
+# seconds(current_episode, current_track): Start time in seconds of current_track in current_episode
+# endseconds(current_episode, current_track): End time in seconds of current_track in current_episode (-1 by default)
+# setfavourite(current_episode, current_track, favourite): Set favourite status of current_track in current_episode to favourite
+# setseconds(current_episode, current_track, seconds): Set start time of current_track in current_episode to seconds
+# setendseconds(current_episode, current_track, seconds): Set end time of current_track in current_episode to seconds
 
     # Class-level variable to stop concurrent write access.
     write_access = False
@@ -202,6 +224,7 @@ class Episodes_Database:
         self.location = DB_Location
         self.episodes = None
         self.tracks = None
+        # Check whether the given location exists:
         if not(os.path.isdir(self.location)):
             sys.exit("Exception in Episode_Database: Directory not found at " + self.location)
 #	self.locIndex = os.path.join(self.location+"index.p")
@@ -216,14 +239,17 @@ class Episodes_Database:
 #                sys.exit("Exception in Episode_Database: Error with index contents")
 #        except:
 #            sys.exit("Exception in Episode_Database: Error reading index")
+        # Check whether the main database file exists:
 	self.locEpisodes = os.path.join(self.location, "episodes.p")
         if not(os.path.isfile(self.locEpisodes)):
             sys.exit("Exception in Episode_Database: No data")
+        # Try to load the main database file:
         try:
             self.episodes = pickle.load(open(self.locEpisodes, "rb"))
         except:
             sys.exit("Exception in Episode_Database: Error reading data")
 	self.locTracks = os.path.join(self.location, "tracks")
+        # Check whether the tracks directory exists:
         if not(os.path.isdir(self.locTracks)):
             sys.exit("Exception in Episode_Database: No tracks data")
 	self.loadedtrackpid = ""
@@ -286,8 +312,16 @@ class Episodes_Database:
     def _loadtracks(self,  current_episode):
         if self.validepisode(current_episode):
             if not(self.loadedtrackpid == self.pid(current_episode)):
-                self.tracks = pickle.load(open(self._trackfile(current_episode),"rb"))
-                self.loadedtrackpid = self.pid(current_episode)
+	        if os.path.isfile(self._trackfile(current_episode)):
+                    self.tracks = pickle.load(open(self._trackfile(current_episode),"rb"))
+                    self.loadedtrackpid = self.pid(current_episode)
+                    return True
+                else:
+                    self.tracks = None
+                    self.loadedtrackpid = None
+                    return False
+	    else:
+                return True
         else:
            return None
 
@@ -346,6 +380,13 @@ class Episodes_Database:
         else:
             return None
 
+    def endseconds(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            return self.tracks[current_track]['ends']
+        else:
+            return None
+
     def favourite(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
@@ -360,6 +401,20 @@ class Episodes_Database:
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
             self.tracks[current_track]['seconds'] = seconds
+            self._savetracks(current_episode)
+            self.write_access = False
+	    return True
+        else:
+            self.write_access = False
+            return False
+
+    def setendseconds(self, current_episode, current_track, seconds):
+        if self.write_access:
+            sys.exit("Concurrent write to DB not supported.")
+        self.write_access = True
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            self.tracks[current_track]['ends'] = seconds
             self._savetracks(current_episode)
             self.write_access = False
 	    return True
