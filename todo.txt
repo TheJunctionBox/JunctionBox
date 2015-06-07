@@ -12,9 +12,10 @@ Bug: fix display bug that eats non ascii chars leaving the string too short
 
 Bug: Fix flashing of previous track in display when navigating
 
-Segment loading needs discussing. There's performance implications by loading all segments at start, and
-give that segments are saved when favourties are made, this can easily lead to inconsistencies after a crash.
-B's suggestion is to load segment files when needed.
+/Segment loading needs discussing. There's performance implications by loading all segments at start, and
+ give that segments are saved when favourties are made, this can easily lead to inconsistencies after a crash.
+ B's suggestion is to load segment files when needed.
+ This 'bug' has been addressed by implementing better access to the data through class Episodes_Database
 
 /Bug: When going back through say 5 episodes, sometimes the tracks displayed are from the previous episode. I.e. the
  episode playing is not the same as the one for which tracks are displayed.
@@ -31,8 +32,9 @@ Refactor: make player and display objects (player object can raise events to get
 Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directories)
       Question is whether to do all sub-directories in DATA_DIRECTORY, or to list sub-dirs e.g. by date,
       so that you can choose one.
+  This has been partially addressed by EPISODE_DIRECTORY_LIST that allows loading of several directories.
 
-Tidy up the superfluous code in "lj_download_segments"
+/ Tidy up the superfluous code in "lj_download_segments"
 
 Add performers to data extracted from Late Junction XML
 
