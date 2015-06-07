@@ -20,6 +20,7 @@ Bug: Fix flashing of previous track in display when navigating
 /Bug: When going back through say 5 episodes, sometimes the tracks displayed are from the previous episode. I.e. the
  episode playing is not the same as the one for which tracks are displayed.
  Put in a fix for the played file going out of sync with the file indicated by current_episode. Seems to be a problem with mp.loadfile not catching up.
+ However: While the episode is seeking (in mplayer), it's possible to also seek for the track (in the display). But - when the track starts playing, it plays from beginning.
 
 Make rapid repeated navigation work instead of looping on the same track
 

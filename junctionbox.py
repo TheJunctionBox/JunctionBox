@@ -517,6 +517,18 @@ def next_track(channel=0):
         mp.time_pos = ep.seconds(current_episode, current_track) + intro_offset
     except:
         debug("Cannot advance track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
+
+def this_track(channel=0):
+    global current_track
+
+    if not(ep.validtrack(current_episode, current_track)):
+        current_track = -1
+    else:       
+        display("><", str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
+        try:
+            mp.time_pos = ep.seconds(current_episode, current_track) + intro_offset
+        except:
+            debug("Cannot seek to track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
     
 
 def next_episode(channel=0):
@@ -673,16 +685,28 @@ def check_and_fix_filename_sync_bug():
     episode_file = ep.filename(current_episode)
     #  This would work if mp.path didn't contain all sorts of random stuff!
     mpfile = mp.path
+    expression = r'^\/.*m4a$'
+    p = re.compile(expression)
     if not(str(mpfile) == '' or str(mpfile) == episode_file):
-        if fix_filename_counter > 3:
-            debug("filename_sync_bug. hit="+str(fix_filename_counter))
-            debug("-->"+mpfile)
-            debug("-->"+episode_file)
-        fix_filename_counter += 1
-        if fix_filename_counter > 5:
-            debug("Wrong file playing. Loading episode: "+str(current_episode))
+        if p.match(mpfile) != None:
+            debug("filename_sync_bug. Wrong file playing. Loading episode: "+str(current_episode))
+            debug("filename_sync_bug. Current track: " + str(current_track))
             play_episode(current_episode)
-            fix_filename_counter = 0
+            if current_track > -1:
+                debug("Seeking to track: " + str(current_track))
+                time.sleep(1.5)
+                this_track()
+        else:
+            debug("Current track while seeking: " + str(current_track))
+        # if fix_filename_counter > 3:
+        #     debug("filename_sync_bug. hit="+str(fix_filename_counter))
+        #     debug("-->"+mpfile)
+        #     debug("-->"+episode_file)
+        # fix_filename_counter += 1
+        # if fix_filename_counter > 5:
+        #     debug("Wrong file playing. Loading episode: "+str(current_episode))
+        #     play_episode(current_episode)
+        #     fix_filename_counter = 0
     else:
         fix_filename_counter = 0
 
@@ -893,7 +917,7 @@ def main_loop(screen):
                     track_no  = str(current_track + 1) + " "
                     scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
                 except:
-                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+str(current_episode)+", len(episode[tracks])="+str(ep.ntracks(current_episode)))
+                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
 
                 show_favourite(ep.favourite(current_episode,current_track))
 
