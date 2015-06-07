@@ -29,11 +29,7 @@ JB_DATABASE = os.path.join(DATA_DIRECTORY, "JB_DATABASE" )
 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
 FAVOURITED_LOG_FILE = "favourited.txt"
 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
-FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
 
-
-FAST_START = False       # If 'True' reads cached episode information, as long as cache is not older than:
-FAST_START_CACHE_TIME = 24 * 60 * 60  # duration in s for which episode information in cached
 BUTTONS =  False         #set to True if buttons are present
 LCD =      False         #set to True if there is an LCD screen present
 LED =      False         #set to True if there is an RGB LED present
@@ -87,7 +83,7 @@ intro_offset = 11   #offset in seconds of the start of the music
 current_episode = 0
 current_track = 0
 current_position = 0
-episodes = []
+# episodes = []
 player_status = STOPPED
 stdscr = None
 main_display = None
@@ -99,13 +95,15 @@ ep = None
 # For use of following var, see  check_and_fix_filename_sync_bug()
 fix_filename_counter = 0
 
+mp = mpylayer.MPlayerControl()
+
 def getboolean(mystring):
   return mystring == "True"
 
 def load_config():
     global DEBUG, BUTTONS, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
         DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, EPISODE_DIRECTORY, \
-        FAST_START, FAST_START_CACHE_TIME, FAST_START_CACHE_FILE, DIR_AND_FAVOURITED_LOG_FILE
+        DIR_AND_FAVOURITED_LOG_FILE
 
     # Check for configuration files
     configfile = os.path.join(expanduser("~"), ".junctionbox")
@@ -138,7 +136,6 @@ def load_config():
                 DATA_DIRECTORY = confitems['data_directory']
                 # Update dependent directories:
                 EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
-                FAST_START_CACHE_FILE = os.path.join(DATA_DIRECTORY,"junctionbox_episodes_cache.p")
                 if not('fav_directory' in confitems):
                     FAV_DIRECTORY = DATA_DIRECTORY
                     DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
@@ -149,10 +146,7 @@ def load_config():
                 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
             if 'jb_database' in confitems:
                 JB_DATABASE = confitems['jb_database']
-            if 'fast_start' in confitems:
-                FAST_START = getboolean(confitems['fast_start'])
-            if 'fast_start_cache_time' in confitems:
-                FAST_START_CACHE_TIME = int(confitems['fast_start_cache_time'])
+
     else:
         #if there's no config file then copy over the default one
         default_config_file = os.path.join(
@@ -217,7 +211,7 @@ class Episodes_Database:
         try:
             self.index = pickle.load(open(self.locIndex, "rb"))
             try:
-                if not(self.index.version == 0):
+                if not(self.index['version'] == 0):
                     sys.exit("Exception in Episode_Database: Wrong db version")
             except:
                 sys.exit("Exception in Episode_Database: Error with index contents")
@@ -398,18 +392,11 @@ class Episodes_Database:
             self._savetracks(current_episode)
             write_access = False
 
-
-
-mp = mpylayer.MPlayerControl()
-
 def prev_episode(channel=0):
     global current_episode
 
     display("|<", str(current_episode + 1) + " / " + str(len(episodes)))
-#db    if not(ep.firstepisode(current_episode)):
-#        current_episode -= 1
-#        play_episode(current_episode)
-    if current_episode > 0:
+    if not(ep.firstepisode(current_episode)):
         current_episode -= 1
         play_episode(current_episode)
 
@@ -421,12 +408,9 @@ def prev_track(channel=0):
     track_list = episode['tracks']
     display("<<", str(current_track + 1) + " / " + str(len(track_list)))
 
-# db   if not(ep.firsttrack(current_episode,current_track)):
-#        current_track -= 1
-#        mp.time_pos = ep.seconds(current_episode, current_track) + intro_offset
-    if current_track > 0:
+    if not(ep.firsttrack(current_episode,current_track)):
         current_track -= 1
-        mp.time_pos = track_list[current_track]['seconds'] + intro_offset
+        mp.time_pos = ep.seconds(current_episode, current_track) + intro_offset
     else:
         current_track = 0
         mp.time_pos = 0
@@ -473,8 +457,7 @@ def next_track(channel=0):
     episode = episodes[current_episode]
     track_list = episode['tracks']
 
-#db    if not(ep.lasttrack(current_episode, current_trac)):
-    if current_track < len(track_list) - 1:
+    if not(ep.lasttrack(current_episode, current_trac)):
         current_track += 1
         
     display(">>", str(current_track + 1) + " / " + str(len(track_list)))
@@ -489,8 +472,7 @@ def next_episode(channel=0):
     global current_episode
     
     display(">|", str(current_episode + 1) + " / " + str(len(episodes)))
-#db    if not(ep.lastepisode(current_episode)):
-    if current_episode < len(episodes) - 1:
+    if not(ep.lastepisode(current_episode)):
         current_episode += 1
         play_episode(current_episode)
 
@@ -500,8 +482,8 @@ def mark_favourite(channel=0):
 
     episode = episodes[current_episode] 
     track = episode['tracks'][current_track] 
-    # ep.setfavourite(current_episode,current_track,not(ep.favourite(current_episode,current_track)))
-    track['favourite'] = not(track['favourite'])
+    ep.setfavourite(current_episode,current_track,not(ep.favourite(current_episode,current_track)))
+#    track['favourite'] = not(track['favourite'])
 
     if favourited_log_queue != None:
         #if the current track has been un-favourited then take it off the log queue
@@ -516,8 +498,8 @@ def mark_favourite(channel=0):
         if track['favourite']:
             favourited_log_queue = track
 
-#    show_favourite(ep.favourite(current_episode,current_track))
-    show_favourite(track['favourite'])
+    show_favourite(ep.favourite(current_episode,current_track))
+#    show_favourite(track['favourite'])
     save_data()
     
 
@@ -529,15 +511,6 @@ if BUTTONS:
 	GPIO.add_event_detect(7, GPIO.FALLING, callback=next_track, bouncetime=300)
 	GPIO.add_event_detect(8, GPIO.FALLING, callback=next_episode, bouncetime=300)
 	GPIO.add_event_detect(12, GPIO.FALLING, callback=mark_favourite, bouncetime=300)
-
-
-#db: To be Removed.
-def save_data():
-    episode = episodes[current_episode]
-    tracks = episode['tracks']
-    pid = episode['pid']
-    #B/SEGMENTS: reconstructing the location of the .p file from EPISODE_DIRECTORY is not ideal, because episodes may be in several locations.
-    pickle.dump(tracks, open(os.path.join(EPISODE_DIRECTORY, pid + ".p"), "wb"))
 
 
 def update_position():
@@ -627,77 +600,6 @@ def debug(msg, value=""):
         else:
             # if debug_display doesn't (yet) exist, just print to stdout
             print text
-
-
-#db: Replace by db connection
-def get_episodes():
-    #Decide whether to use cache or to read from EPISODE_DIR.
-    if FAST_START:
-        if not(os.path.exists(FAST_START_CACHE_FILE)) or (time.time() - os.path.getmtime(FAST_START_CACHE_FILE) > FAST_START_CACHE_TIME):
-            debug("Fast start: Read episodes from EPISODE_DIR ...")
-            episodes = load_episodes()
-            #If no episodes were loaded, should not write cache file:
-            if len(episodes) > 0: 
-                debug("Fast start: ... and write to cache: "+FAST_START_CACHE_FILE)
-                pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
-            else:
-                debug("Fast start: ... no episodes were loaded.")
-        else:
-            debug("Fast start: Read episodes from cache: "+FAST_START_CACHE_FILE)
-            episodes = pickle.load(open(FAST_START_CACHE_FILE, "rb"))
-    else:
-        episodes = load_episodes()
-
-    return episodes
-
-#db: To be Removed.
-def load_episodes():
-    #open every meta data file and get the media file and a displayable name
-
-    episodes = []
-    file_pattern = (os.path.join(EPISODE_DIRECTORY, EPISODE_FILE_PATTERN))
-
-    for metaDataFile in glob.glob(file_pattern):
-
-        tree = ET.parse(metaDataFile)
-        root = tree.getroot()
-
-        filename = os.path.join(EPISODE_DIRECTORY,
-                   root.find(NAMESPACE + 'fileprefix').text + "." +
-                   root.find(NAMESPACE + 'ext').text)
-
-        try:
-            pid = root.find(NAMESPACE + 'pid').text
-            # firstbcastdate is not in all xml
-            firstbcastdate = root.find(NAMESPACE + 'firstbcastdate').text
-            channel = root.find(NAMESPACE + 'channel').text
-            # "band" is not present in older xml, and not used below, hence removed.
-            # brand = root.find(NAMESPACE + 'brand').text
-            episode = root.find(NAMESPACE + 'episode').text
-        except:
-            debug("Error parsing: "+metaDataFile)
-            #exception will be raised if node is missing from xml
-
-        #B/tracks: My suggestion is to not load tracks here.
-        segment_file_name = os.path.join(EPISODE_DIRECTORY, pid + ".p")
-	# The following fails if segment_file_name does not exist! Need to check!
-        tracks = get_segments(segment_file_name)
-
-        if len(tracks) == 0:
-            debug("No tracks read for "+metaDataFile)
-
-        episodes.append({'filename': filename, 'pid':pid, 'episode': episode,
-                        'firstbcastdate': firstbcastdate, 'tracks': tracks})
-        #B/SEGMENTS:                     , 'tracksfile': segment_file_name})
-        #B/SEGMENTS: Further suggestion would be to construct the segment_file_name once, and save it within episodes.
-
-    episodes.sort(key=lambda ep: ep['firstbcastdate'])
-
-    return episodes        
-
-#db: To be removed
-def get_segments(filename):
-    return pickle.load(open(filename, "rb"))
 
 
 def play_episode(index):
@@ -872,9 +774,10 @@ def log_favourited(track, episode):
     
 
 def main_loop(screen):
-    global current_episode, episodes, stdscr, main_display, debug_display, favourited_log_queue
+    global current_episode, stdscr, main_display, debug_display, favourited_log_queue
     # Surely needs: global current_track
     global current_track
+    global ep
 
     load_config()
 
@@ -901,17 +804,15 @@ def main_loop(screen):
     display("Junction", "Box") 
     led(0,0,0)
 
-#db    ep = Episodes_Database(JB_DATABASE)
-    episodes = get_episodes()
+    ep = Episodes_Database(JB_DATABASE)
     
-    if len(episodes) == 0:
+    if len(ep) == 0:
         #TODO when episode downloading is moved to junctionbox then it should
         #wait here while downloading instead of exiting. 
         #B: Though in an ideal world it would immediately play the one it's downloading.
         sys.exit("Can't find any episodes to play in "+ DATA_DIRECTORY+ ", "+EPISODE_DIRECTORY)
 
-#db    current_episode = ep.nepisodes() - 1
-    current_episode = len(episodes) - 1
+    current_episode = ep.nepisodes() - 1
     play_episode(current_episode)
 
     #sometimes mplayer doesn't report back length for a while.
@@ -939,25 +840,23 @@ def main_loop(screen):
             #B: Inserted this, because of issue below, see next try/except block:
 	    if last_episode != current_episode:
                 current_track = -1
-                debug("New episode: "+episodes[current_episode]['pid']+", date="+episodes[current_episode]['firstbcastdate'])
+                debug("New episode: "+ep.pid(current_episode)+", date="+ep.date(current_episode))
             last_episode = current_episode
-            episode = episodes[current_episode]
+            #episode = episodes[current_episode]
             if current_track < 0:
-                scroller1 = Scroller("", episode['episode'], "      ",    line_size=LINEWIDTH)
-                scroller2 = Scroller("", episode['firstbcastdate'], "  ", line_size=LINEWIDTH)
+                scroller1 = Scroller("", ep.title(current_episode), "      ",    line_size=LINEWIDTH)
+                scroller2 = Scroller("", ep.date(current_episode), "  ", line_size=LINEWIDTH)
             else:
                 try:
-                    track = episode['tracks'][current_track]
-                    artist = track['artist']
-                    scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)
-                
+                    track_name = ep.tracktitle(current_episode,current_track)
+                    artist = ep.artist(current_episode,current_track)
+                    scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)                
                     track_no = str(current_track + 1) + " "
-                    track_name =  track['track']
                     scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
                 except:
-                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+str(current_episode)+", len(episode[tracks])="+str(len(episode['tracks'])))
+                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+str(current_episode)+", len(episode[tracks])="+str(ep.ntracks()))
 
-                show_favourite(track['favourite'])
+                show_favourite(ep.favourite(current_episode,current_track))
 
                 #if there is a track in the log queue when the track changes, log it.
                 #tracks can be unfavourited before the track changes.
@@ -1013,12 +912,7 @@ def quit():
     if BUTTONS or LED or LCD:
 	GPIO.cleanup()
 
-    #B/tracks: This is needed because favourites setting modifies 'episodes'. If tracks were loaded per episode, this would not be needed:
-    if FAST_START:
-        debug("FAST_START: Writing cache file.")
-        pickle.dump(episodes, open(FAST_START_CACHE_FILE, "wb"))
-
-    sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+episodes[current_episode]['firstbcastdate']+".\n")
+    sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+ep.date(current_episode)+"\n")
 
 
 if __name__ == '__main__':
