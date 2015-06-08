@@ -22,6 +22,8 @@ Bug: Fix flashing of previous track in display when navigating
  Put in a fix for the played file going out of sync with the file indicated by current_episode. Seems to be a problem with mp.loadfile not catching up.
  However: While the episode is seeking (in mplayer), it's possible to also seek for the track (in the display). But - when the track starts playing, it plays from beginning.
 
+Bug: "Track seeking". Intermittent. When you press vvv or more, sometimes the seeking doesn't stop, but the time keeps flicking forward in say 5 s increments.
+
 Make rapid repeated navigation work instead of looping on the same track
 
 Find a way to show the "2/18" when navigating without it being instantly overwritten by the track name. 
