@@ -116,6 +116,7 @@ def parse_segment_html(html):
 
 def get_episodes_audio():
     # call get_iplayer
+    pass
 
 def get_episodes_metadata():
     #open every meta data file and get the media file and a displayable name
@@ -144,9 +145,10 @@ def get_episodes_metadata():
                     # "band" is not present in older xml, and not used below, hence removed.
                     # brand = root.find(NAMESPACE + 'brand').text
                     episode = root.find(NAMESPACE + 'episode').text
+                    duration = root.find(NAMESPACE + 'durations').text
                     if (os.path.isdir(filedir)  and os.path.isfile(filename)):
                         episodes.append({'filename': filename, 'pid':pid, 'episode': episode,
-                                         'firstbcastdate': firstbcastdate, 'fileprefix': fileprefix, 'dir': filedir , 'ext': fileext })
+                                         'firstbcastdate': firstbcastdate, 'fileprefix': fileprefix, 'dir': filedir , 'ext': fileext, 'duration':duration })
                     else:
                         # print "Error for " + filename + " " + pid + " " + " " + fileprefix + " " + filedir + " " + fileext
                         print "  Error: No audio file for " + filename + " " + firstbcastdate

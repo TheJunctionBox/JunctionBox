@@ -263,6 +263,12 @@ class Episodes_Database:
         else:
             return False
 
+    def duration(self, current_episode):
+        if self.validepisode(current_episode):
+            return self.episodes[current_episode]['duration']
+        else:
+            return None
+
     def firstepisode(self, current_episode):
         if self.validepisode(current_episode):
             if current_episode == 0:
@@ -450,6 +456,15 @@ class Episodes_Database:
             self._savetracks(current_episode)
             self.write_access = False
 
+def get_track_end(current_episode, current_track):
+    if current_track == -1:
+        return ep.seconds(current_episode, current_track+1)
+    if ep.endseconds(current_episode, current_track) > 0:
+        return ep.endseconds(current_episode, current_track)
+    if ep.lasttrack(current_episode, current_track):        
+        return ep.duration(current_episode)
+    return ep.seconds(current_episode, current_track+1)
+
 def prev_episode(channel=0):
     global current_episode
 
@@ -516,7 +531,10 @@ def adjust_track_end():
                 else:
                     adjust_track = current_track + 1
         time_diff = newtime - ep.endseconds(current_episode, adjust_track)
-        oldtime = ep.endseconds(current_episode, adjust_track)
+        oldtime_raw = ep.endseconds(current_episode, adjust_track)
+        oldtime = get_track_end(current_episode, adjust_track)
+	if oldtime_raw == oldtime:
+            infostr = "*"
         if newtime > 0: 
             ep.setendseconds(current_episode, adjust_track, newtime)
 	    debug("End time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track)+". Saved to db." )
@@ -949,9 +967,15 @@ def main_loop(screen):
                     scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)                
                     track_no  = str(current_track + 1) + " "
                     scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
-                    debug("Track " + str(track_no) +  track_name + ", " + format_time(ep.seconds(current_episode,current_track)) + "-" + format_time(ep.endseconds(current_episode,current_track)))
+                    if ep.endseconds(current_episode, current_track) > 0:
+                        infostr = "*"
+                    else:
+                        infostr = ""
+                    debug("Track " + str(track_no) +  track_name + ", " + format_time(ep.seconds(current_episode,current_track)) + 
+                          "-" + format_time(get_track_end(current_episode,current_track))+ infostr)
                 except:
-                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
+                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+
+                          str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
 
                 show_favourite(ep.favourite(current_episode,current_track))
 
