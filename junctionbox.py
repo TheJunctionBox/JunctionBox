@@ -89,11 +89,10 @@ debug_display = None
 favourited_log_string = None
 event_queue = []
 ep = None
+mp = None
 
 # For use of following var, see  check_and_fix_filename_sync_bug()
 fix_filename_counter = 0
-
-mp = mpylayer.MPlayerControl()
 
 def getboolean(mystring):
   return mystring == "True"
@@ -379,6 +378,7 @@ class Episodes_Database:
         else:
             return None
 
+    # Could be renamed to "start"
     def seconds(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
@@ -386,6 +386,7 @@ class Episodes_Database:
         else:
             return None
 
+    # Could be renamed to "end"
     def endseconds(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
@@ -464,6 +465,20 @@ def get_track_end(current_episode, current_track):
     if ep.lasttrack(current_episode, current_track):        
         return ep.duration(current_episode)
     return ep.seconds(current_episode, current_track+1)
+
+def example_list():
+    # Self-contained example to list whole database.
+    global ep, JB_DATABASE
+    load_config()
+    ep = Episodes_Database(JB_DATABASE)
+    for i in range(ep.nepisodes()):
+        print str(i) + " " + ep.title(i) + " " + ep.date(i)
+        for j in range(ep.ntracks(i)):
+            print " - " + str(j) + " " + format_time(ep.seconds(i,j)) +" " + ep.tracktitle(i,j)
+            # Correct track starts for "offset"
+            #ep.setseconds(i,j,ep.seconds(i,j)+11)
+            #if (ep.seconds(i,j) == 0):
+            #    ep.setseconds(i,j,-1)
 
 def prev_episode(channel=0):
     global current_episode
@@ -892,8 +907,11 @@ def main_loop(screen):
     # Surely needs: global current_track
     global current_track
     global ep, JB_DATABASE
+    global mp
 
     load_config()
+
+    mp = mpylayer.MPlayerControl()
 
     stdscr = screen
     main_display = curses.newwin(DISPLAYHEIGHT + 1,LINEWIDTH,1,0)    
