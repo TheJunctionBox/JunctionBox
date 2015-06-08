@@ -383,7 +383,10 @@ class Episodes_Database:
     def endseconds(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
-            return self.tracks[current_track]['ends']
+            if not('ends' in self.tracks[current_track]):
+                return -1
+            else:
+                return self.tracks[current_track]['ends']
         else:
             return None
 
@@ -494,7 +497,30 @@ def adjust_track_start():
     oldtime = ep.seconds(current_episode, adjust_track)
     if newtime > 0: 
         ep.setseconds(current_episode, adjust_track, newtime)
-	debug("Start time adjusted by "+str(time_diff)+"s, from "+str(oldtime) + " to " + str(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db." )
+	debug("Start time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db." )
+
+def adjust_track_end():
+    global current_track
+    current_time = mp.time_pos
+    newtime = current_time - intro_offset
+    if current_track > -1 and current_track < ep.ntracks(current_episode):
+        if current_track == ep.ntracks(current_episode) - 1:
+            adjust_track = current_track
+        else:
+            if current_track == - 1:
+                adjust_track = current_track + 1
+            else:
+                # If we are just into the next track, still adjust the previous track...
+                if newtime + 5 < ep.seconds(current_episode, current_track+1):
+                    adjust_track = current_track
+                else:
+                    adjust_track = current_track + 1
+        time_diff = newtime - ep.endseconds(current_episode, adjust_track)
+        oldtime = ep.endseconds(current_episode, adjust_track)
+        if newtime > 0: 
+            ep.setendseconds(current_episode, adjust_track, newtime)
+	    debug("End time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track)+". Saved to db." )
+
 
 def play_pause(channel=0):
     play_pause()
@@ -541,7 +567,12 @@ def next_episode(channel=0):
 
 
 def get_fav_log_string(episode,track):
+
+    start_end_time = format_time(ep.seconds(episode,track))
+    if (ep.endseconds(episode,track) > 0):
+        start_end_time = start_end_time + "-" + format_time(ep.endseconds(episode,track))
     data = ep.tracktitle(episode,track) + "\n" + ep.trackartist(episode,track) + "\n" + \
+           start_end_time + "\n" + \
            ep.title(episode) + "  " + ep.date(episode) + "\n" + \
 	   "http://www.bbc.co.uk/programmes/" + ep.pid(episode) + "\n\n"
     return data
@@ -821,6 +852,8 @@ def handle_keypress(c):
         mark_favourite()
     elif c == ord('/'):
         adjust_track_start()
+    elif c == ord('\\'):
+        adjust_track_end()
     elif c == ord('m'):
         mute_unmute()
     elif c == ord('?'):
@@ -916,6 +949,7 @@ def main_loop(screen):
                     scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)                
                     track_no  = str(current_track + 1) + " "
                     scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
+                    debug("Track " + str(track_no) +  track_name + ", " + format_time(ep.seconds(current_episode,current_track)) + "-" + format_time(ep.endseconds(current_episode,current_track)))
                 except:
                     debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
 
