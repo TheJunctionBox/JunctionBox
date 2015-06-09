@@ -42,6 +42,7 @@ Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directo
 / Tidy up the superfluous code in "lj_download_segments"
 
 Add performers to data extracted from Late Junction XML
+    B: Data extraction needs re-doing anyway, as current regexp doesn't always work.
 
 Add performer data to the exported favourited file
 
