@@ -10,13 +10,12 @@
 #linewidth=16
 #displayheight=2
 #unprintable_char=#
+#intro_offset=0
 #data_directory=~/jb_data
 #fav_directory=~/jb_data
 #jb_database=~/jb_data/JB_DATABASE
 #episode_directory_list=A,B
-#FAST_START = False
-#FAST_START_CACHE_TIME = 24 * 60 * 60 
-# lj_get_segment_files options:
+### jbgetdata.py options:
 #HTML_NAME_CONVENTION = "pid"
 #HTML_NAME_CONVENTION = "fileprefix"
 #HTML_FILE_LONG_NAME = True

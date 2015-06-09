@@ -100,7 +100,7 @@ def getboolean(mystring):
 def load_config():
     global DEBUG, BUTTONS, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
         DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, \
-        DIR_AND_FAVOURITED_LOG_FILE, JB_DATABASE
+        DIR_AND_FAVOURITED_LOG_FILE, JB_DATABASE, intro_offset
 
     # Check for configuration files
     configfile = os.path.join(expanduser("~"), ".junctionbox")
@@ -142,6 +142,8 @@ def load_config():
                 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
             if 'jb_database' in confitems:
                 JB_DATABASE = confitems['jb_database']
+            if 'intro_offset' in confitems:
+                intro_offset = int(confitems['intro_offset'])
 
     else:
         #if there's no config file then copy over the default one
@@ -472,13 +474,16 @@ def example_list():
     load_config()
     ep = Episodes_Database(JB_DATABASE)
     for i in range(ep.nepisodes()):
-        print str(i) + " " + ep.title(i) + " " + ep.date(i)
+        try:
+            print str(i) + " " + ep.title(i) + " " + ep.date(i)
+        except:
+            print str(i) + " ENCODING_ERROR " + ep.date(i)
         for j in range(ep.ntracks(i)):
-            print " - " + str(j) + " " + format_time(ep.seconds(i,j)) +" " + ep.tracktitle(i,j)
-            # Correct track starts for "offset"
-            #ep.setseconds(i,j,ep.seconds(i,j)+11)
-            #if (ep.seconds(i,j) == 0):
-            #    ep.setseconds(i,j,-1)
+            if ep.endseconds(i,j) > 0:
+                infostr = "*"
+            else:
+                infostr = ""
+            print "  (" + str(j) + ") " + str(ep.favourite(i,j)) + " " + format_time(ep.seconds(i,j)) + "-" + format_time(get_track_end(i,j)) + infostr + " " + ep.tracktitle(i,j) + " - " + ep.trackartist(i,j)
 
 def prev_episode(channel=0):
     global current_episode
@@ -1055,5 +1060,6 @@ def quit():
 
 
 if __name__ == '__main__':
+#    example_list()
     curses.wrapper(main_loop)
 
