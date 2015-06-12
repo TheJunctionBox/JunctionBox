@@ -40,6 +40,7 @@ DISPLAYHEIGHT = 2        # Lines available on display
 #Navigation options (not in .junctionbox yet)
 SKIP_TIME_MEDIUM = 60
 SKIP_TIME_SHORT  = 5
+PLAY_DIRECTION = - 1
 
 EPISODE_FILE_PATTERN = "*.xml"
 
@@ -408,10 +409,11 @@ class Episodes_Database:
 #            if divres[1] != 0:
 #                return self.tracks[current_track]['seconds']
             if 'mystart' in self.tracks[current_track]:
-                if self.tracks[current_track]['mystart'] != -1:
+                if self.tracks[current_track]['mystart'] >= 0:
                     return self.tracks[current_track]['mystart']
             if 'start' in self.tracks[current_track]:
-                return self.tracks[current_track]['start']
+                if self.tracks[current_track]['start'] >= 0:
+                    return self.tracks[current_track]['start']
             return self.tracks[current_track]['seconds']
         else:
             return None
@@ -439,6 +441,7 @@ class Episodes_Database:
             self._loadtracks(current_episode)
             return self.format_time(self.tracks[current_track]['start']) + \
                    "/" + self.format_time(self.tracks[current_track]['mystart']) + \
+                   "/" + self.format_time(self.tracks[current_track]['seconds']) + \
                   " - " + self.format_time(self.endseconds(current_episode,current_track) )
             # return self.format_time(self.tracks[current_track]['seconds']) + \
             #        "/" + self.format_time(self.tracks[current_track]['mystart']) + \
@@ -861,7 +864,8 @@ def check_and_fix_filename_sync_bug():
                 time.sleep(1.5)
                 this_track()
         else:
-            debug("Current track while seeking: " + str(current_track))
+            pass
+            # debug("Current track while seeking: " + str(current_track))
         # if fix_filename_counter > 3:
         #     debug("filename_sync_bug. hit="+str(fix_filename_counter))
         #     debug("-->"+mpfile)
@@ -966,6 +970,37 @@ def change_mode():
         debug("PLAY_MODE_DEFAULT")
         play_mode = PLAY_MODE_DEFAULT
 
+def seek_next_fav():
+    global current_track
+    if not(ep.favourite(current_episode,current_track))  or current_position > get_track_end(current_episode,current_track):
+        if not(ep.lasttrack(current_episode,current_track)):
+            i = current_track
+            while i in range(current_track, ep.ntracks(current_episode)-1) and not ep.favourite(current_episode,i):
+                i = i + 1
+            if ep.lasttrack(current_episode,i):
+                if not ep.favourite(current_episode,i):
+                    debug("Favourite mode: go to prev/next episode")
+                    if PLAY_DIRECTION == -1:
+                        prev_episode()
+                    else:
+                        next_episode()
+                    time.sleep(1.0)
+                else:
+                    debug("Favourite mode: Skip track to "+ str(i) + " (last track), in "+str(current_episode))
+                    current_track = i
+                    this_track()
+            else:
+                debug("Favourite mode: Skip track to "+ str(i) + ", in "+str(current_episode))
+                current_track = i
+                this_track()
+        else:
+            debug("Favourite mode: go to prev/next episode")
+            if PLAY_DIRECTION == -1:
+                prev_episode()
+            else:
+                next_episode()
+            time.sleep(1.0)
+
 def handle_keypress(c):
 #If you add keys, please also add them to '?'
     if c == ord('z'):
@@ -1062,9 +1097,9 @@ def main_loop(screen):
         current_episode = int(sys.argv[1])
     if (len(sys.argv) > 2):
         launch_track = int(sys.argv[2])
-    while current_episode > -1:
+    while current_episode > -1 and current_episode < ep.nepisodes():
         play_and_display(launch_track)
-        current_episode =  current_episode - 1
+        current_episode =  current_episode + PLAY_DIRECTION
     quit()
 
 
@@ -1097,19 +1132,13 @@ def play_and_display(launch_track):
             launch_track = -1
             this_track()
         if play_mode == PLAY_MODE_FAV_ONLY:
-            if not(ep.favourite(current_episode,current_track)):
-                if not(ep.lasttrack(current_episode,current_track)):
-                    debug("Favourite mode: Skip track")
-                    next_track()
-                else:
-                    debug("Favourite mode: Prev episode")
-                    prev_episode()
-            if current_position > get_track_end(current_episode,current_track):
-                next_track()
+            seek_next_fav()
+            #debug("Last track "+str(last_track) + ", " + str(current_track))
         if (last_track != current_track) or (last_episode != current_episode):
             last_track = current_track
             #B: Inserted this, because of issue below, see next try/except block:
 	    if last_episode != current_episode:
+                last_track = -2
                 current_track = -1
                 debug("New episode: "+str(current_episode) + ", pid=" + ep.pid(current_episode)+", date="+ep.date(current_episode))
             last_episode = current_episode
@@ -1128,10 +1157,10 @@ def play_and_display(launch_track):
                     debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+
                           str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
                 try:
-                    debug("Playing track " + str(track_no) +  track_name + ", " 
-                          + format_time(ep.seconds(current_episode,current_track)) + ep.starttype(current_episode,current_track) + 
-                          "-" + format_time(get_track_end(current_episode,current_track))+ ep.endtype(current_episode,current_track) )
-                          # + "; " + ep.time_info(current_episode,current_track))
+                    debug("Playing track " + str(current_track) + ", in ep=" + str(current_episode)  +  " (" + track_name  + ") "
+                          + format_time(ep.seconds(current_episode,current_track)) + ep.starttype(current_episode,current_track)  
+                          + "-" + format_time(get_track_end(current_episode,current_track))+ ep.endtype(current_episode,current_track) 
+                          + "; " + ep.time_info(current_episode,current_track))
                 except:
                    debug("Playing track " + str(track_no))
 
