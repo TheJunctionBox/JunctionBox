@@ -82,7 +82,6 @@ PLAY_MODE_FAV_ONLY = 1
 play_mode = PLAY_MODE_DEFAULT
 
 #main global variables
-intro_offset = 11   #offset in seconds of the start of the music
 current_episode = 0
 current_track = 0
 current_position = 0
@@ -106,7 +105,7 @@ def getboolean(mystring):
 def load_config():
     global DEBUG, BUTTONS, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
         DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, \
-        DIR_AND_FAVOURITED_LOG_FILE, JB_DATABASE, intro_offset
+        DIR_AND_FAVOURITED_LOG_FILE, JB_DATABASE
 
     # Check for configuration files
     configfile = os.path.join(expanduser("~"), ".junctionbox")
@@ -148,8 +147,6 @@ def load_config():
                 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
             if 'jb_database' in confitems:
                 JB_DATABASE = confitems['jb_database']
-            if 'intro_offset' in confitems:
-                intro_offset = int(confitems['intro_offset'])
 
     else:
         #if there's no config file then copy over the default one
@@ -561,7 +558,7 @@ def prev_track(channel=0):
 
     if not(ep.firsttrack(current_episode,current_track)):
         current_track -= 1
-        mp.time_pos = ep.seconds(current_episode, current_track) + intro_offset
+        mp.time_pos = ep.seconds(current_episode, current_track) 
     else:
         current_track = 0
         mp.time_pos = 0
@@ -575,7 +572,7 @@ def skip_back(SKIP_TIME):
 def adjust_track_start():
     global current_track
     current_time = mp.time_pos
-    newtime = current_time - intro_offset
+    newtime = current_time 
     if current_track == - 1:
         adjust_track = current_track + 1
     else: 
@@ -598,7 +595,7 @@ def adjust_track_start():
 def adjust_track_end():
     global current_track
     current_time = mp.time_pos
-    newtime = current_time - intro_offset
+    newtime = current_time 
     if current_track > -1 and current_track < ep.ntracks(current_episode):
         if current_track == ep.ntracks(current_episode) - 1:
             adjust_track = current_track
@@ -643,7 +640,7 @@ def next_track(channel=0):
     display(">>", str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
 
     try:
-        mp.time_pos = ep.seconds(current_episode, current_track) + intro_offset
+        mp.time_pos = ep.seconds(current_episode, current_track) 
     except:
         debug("Cannot advance track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
 
@@ -655,7 +652,7 @@ def this_track(channel=0):
     else:       
         display("><", str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
         try:
-            mp.time_pos = ep.seconds(current_episode, current_track) + intro_offset
+            mp.time_pos = ep.seconds(current_episode, current_track) 
         except:
             debug("Cannot seek to track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
     
@@ -728,7 +725,7 @@ def update_position():
 
         track_index = ep.ntracks(current_episode) - 1
         for i in range(ep.ntracks(current_episode)):
-            if ep.seconds(current_episode, i ) + intro_offset > pos:
+            if ep.seconds(current_episode, i ) > pos:
                 track_index = i - 1
                 break
 
