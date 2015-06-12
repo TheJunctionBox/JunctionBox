@@ -76,6 +76,10 @@ STOPPED = 0
 PLAYING = 1
 PAUSED = 2
 
+PLAY_MODE_DEFAULT   = 0
+PLAY_MODE_FAV_ONLY = 1
+play_mode = PLAY_MODE_DEFAULT
+
 #main global variables
 intro_offset = 11   #offset in seconds of the start of the music
 current_episode = 0
@@ -412,6 +416,24 @@ class Episodes_Database:
         else:
             return None
 
+    def starttype(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            if 'mystart' in self.tracks[current_track]:
+                if self.tracks[current_track]['mystart'] != -1:
+                    return "*"
+            if 'start' in self.tracks[current_track]:
+                return ""
+            return "~"
+        else:
+            return None
+
+    def endtype(self, current_episode, current_track):
+        if ep.endseconds(current_episode, current_track) > 0:
+            return "*"
+        else:
+            return ""
+
     def time_info(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
@@ -422,7 +444,8 @@ class Episodes_Database:
             #        "/" + self.format_time(self.tracks[current_track]['mystart']) + \
             #        "/" + self.format_time(self.tracks[current_track]['start']) + \
             #       " - " + self.format_time(self.endseconds(current_episode,current_track) )
-
+        else:
+            return "--/--"
     # Could be renamed to "end"
     def endseconds(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
@@ -811,7 +834,7 @@ def get_show_length(index):
     global ep, mplength
     if mplength == None:
         mplength = mp.length
-        debug("mplength: "+str(mplength))
+        #debug("mplength: "+str(mplength))
     if mplength == None:
         return ep.duration(index)
     else:
@@ -934,6 +957,14 @@ def mute_unmute():
         mp.volume = 99.5
     debug("New volume: "+str(mp.volume))
 
+def change_mode():
+    global play_mode
+    if play_mode == PLAY_MODE_DEFAULT:
+        debug("PLAY_MODE_FAV_ONLY")
+        play_mode = PLAY_MODE_FAV_ONLY
+    else:
+        debug("PLAY_MODE_DEFAULT")
+        play_mode = PLAY_MODE_DEFAULT
 
 def handle_keypress(c):
 #If you add keys, please also add them to '?'
@@ -960,14 +991,16 @@ def handle_keypress(c):
         skip_forward(SKIP_TIME_SHORT)
     elif c == ord('n'):
         mark_favourite()
+    elif c == ord('m'):
+        change_mode()
     elif c == ord('/'):
         adjust_track_start()
     elif c == ord('\\'):
         adjust_track_end()
-    elif c == ord('m'):
+    elif c == ord('V'):
         mute_unmute()
     elif c == ord('?'):
-        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; m: mute; q: quit; ?: this help; C: play/pause bug fix\n<,>: back/forward some secs, /: adjust track start")
+        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; V: mute; q: quit; ?: this help; C: play/pause bug fix\n<,>: back/forward some secs, /: adjust track startm \\: adjust track end, m: mode")
     elif c == ord('q'):
         quit()
 
@@ -1063,6 +1096,16 @@ def play_and_display(launch_track):
             current_track = launch_track
             launch_track = -1
             this_track()
+        if play_mode == PLAY_MODE_FAV_ONLY:
+            if not(ep.favourite(current_episode,current_track)):
+                if not(ep.lasttrack(current_episode,current_track)):
+                    debug("Favourite mode: Skip track")
+                    next_track()
+                else:
+                    debug("Favourite mode: Prev episode")
+                    prev_episode()
+            if current_position > get_track_end(current_episode,current_track):
+                next_track()
         if (last_track != current_track) or (last_episode != current_episode):
             last_track = current_track
             #B: Inserted this, because of issue below, see next try/except block:
@@ -1084,13 +1127,13 @@ def play_and_display(launch_track):
                 except:
                     debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+
                           str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
-                if ep.endseconds(current_episode, current_track) > 0:
-                    infostr = "*"
-                else:
-                    infostr = ""
-                debug("Track " + str(track_no) +  track_name + ", " + format_time(ep.seconds(current_episode,current_track)) + 
-                          "-" + format_time(get_track_end(current_episode,current_track))+ infostr + "; " + ep.time_info(current_episode,current_track))
-
+                try:
+                    debug("Playing track " + str(track_no) +  track_name + ", " 
+                          + format_time(ep.seconds(current_episode,current_track)) + ep.starttype(current_episode,current_track) + 
+                          "-" + format_time(get_track_end(current_episode,current_track))+ ep.endtype(current_episode,current_track) )
+                          # + "; " + ep.time_info(current_episode,current_track))
+                except:
+                   debug("Playing track " + str(track_no))
 
                 show_favourite(ep.favourite(current_episode,current_track))
 
@@ -1150,7 +1193,8 @@ def quit():
     if BUTTONS or LED or LCD:
 	GPIO.cleanup()
 
-    sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+ep.date(current_episode)+"\n")
+    sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+ep.date(current_episode)+"\n"+
+             "Continue listening like this: "+ sys.argv[0] + " " + str(current_episode)+" "+str(current_track))
 
 
 if __name__ == '__main__':
