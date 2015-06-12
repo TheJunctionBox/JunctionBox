@@ -127,6 +127,9 @@ def get_segment_files(episodes):
                     segment_data[i]['start'] = -1
                 if not('mystart' in segment_data[i]):
                     segment_data[i]['mystart'] = -1
+            if (len(segment_data) > 0):
+                if (segment_data[0]['seconds'] == 0):
+                    segment_data[0]['seconds'] = 11;
             # Write to database:
             pickle.dump(segment_data, open(segment_data_file, "wb"))
 
