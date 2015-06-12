@@ -90,6 +90,7 @@ favourited_log_string = None
 event_queue = []
 ep = None
 mp = None
+mplength = None
 
 # For use of following var, see  check_and_fix_filename_sync_bug()
 fix_filename_counter = 0
@@ -214,8 +215,8 @@ class Episodes_Database:
 # seconds(current_episode, current_track): Start time in seconds of current_track in current_episode
 # endseconds(current_episode, current_track): End time in seconds of current_track in current_episode (-1 by default)
 # setfavourite(current_episode, current_track, favourite): Set favourite status of current_track in current_episode to favourite
-# setseconds(current_episode, current_track, seconds): Set start time of current_track in current_episode to seconds
-# setendseconds(current_episode, current_track, seconds): Set end time of current_track in current_episode to seconds
+# setstart(current_episode, current_track, seconds): Set start time of current_track in current_episode to seconds
+# setend(current_episode, current_track, seconds): Set end time of current_track in current_episode to seconds
 
     # Class-level variable to stop concurrent write access.
     write_access = False
@@ -254,6 +255,15 @@ class Episodes_Database:
         if not(os.path.isdir(self.locTracks)):
             sys.exit("Exception in Episode_Database: No tracks data")
 	self.loadedtrackpid = ""
+
+    def format_time(self,seconds):
+        if (seconds == -1):
+            return "--:--"
+        seconds = int(seconds)
+        secs = seconds % 60
+        mins = (seconds - secs) / 60
+        return str(mins).rjust(2, "0") + ":" + str(secs).rjust(2, "0")
+
 
     def nepisodes(self):
         return len(self.episodes)
@@ -369,7 +379,13 @@ class Episodes_Database:
     def tracktitle(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
-            return self.tracks[current_track]['track']
+            if 'title' in self.tracks[current_track]:
+                if self.tracks[current_track]['title'] != "":
+                    return self.tracks[current_track]['title']
+                else:
+                    return self.tracks[current_track]['track']
+            else:
+                return self.tracks[current_track]['track']
         else:
             return None
 
@@ -384,9 +400,28 @@ class Episodes_Database:
     def seconds(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
+#            divres = divmod(self.tracks[current_track]['seconds'], 60)
+#            if divres[1] != 0:
+#                return self.tracks[current_track]['seconds']
+            if 'mystart' in self.tracks[current_track]:
+                if self.tracks[current_track]['mystart'] != -1:
+                    return self.tracks[current_track]['mystart']
+            if 'start' in self.tracks[current_track]:
+                return self.tracks[current_track]['start']
             return self.tracks[current_track]['seconds']
         else:
             return None
+
+    def time_info(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            return self.format_time(self.tracks[current_track]['start']) + \
+                   "/" + self.format_time(self.tracks[current_track]['mystart']) + \
+                  " - " + self.format_time(self.endseconds(current_episode,current_track) )
+            # return self.format_time(self.tracks[current_track]['seconds']) + \
+            #        "/" + self.format_time(self.tracks[current_track]['mystart']) + \
+            #        "/" + self.format_time(self.tracks[current_track]['start']) + \
+            #       " - " + self.format_time(self.endseconds(current_episode,current_track) )
 
     # Could be renamed to "end"
     def endseconds(self, current_episode, current_track):
@@ -406,13 +441,13 @@ class Episodes_Database:
         else:
             return None
 
-    def setseconds(self, current_episode, current_track, seconds):
+    def setstart(self, current_episode, current_track, seconds):
         if self.write_access:
             sys.exit("Concurrent write to DB not supported.")
         self.write_access = True
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
-            self.tracks[current_track]['seconds'] = seconds
+            self.tracks[current_track]['mystart'] = seconds
             self._savetracks(current_episode)
             self.write_access = False
 	    return True
@@ -420,7 +455,7 @@ class Episodes_Database:
             self.write_access = False
             return False
 
-    def setendseconds(self, current_episode, current_track, seconds):
+    def setend(self, current_episode, current_track, seconds):
         if self.write_access:
             sys.exit("Concurrent write to DB not supported.")
         self.write_access = True
@@ -531,7 +566,7 @@ def adjust_track_start():
     time_diff = newtime - ep.seconds(current_episode, adjust_track)
     oldtime = ep.seconds(current_episode, adjust_track)
     if newtime > 0: 
-        ep.setseconds(current_episode, adjust_track, newtime)
+        ep.setstart(current_episode, adjust_track, newtime)
 	debug("Start time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db." )
 
 def adjust_track_end():
@@ -556,7 +591,7 @@ def adjust_track_end():
 	if oldtime_raw == oldtime:
             infostr = "*"
         if newtime > 0: 
-            ep.setendseconds(current_episode, adjust_track, newtime)
+            ep.setend(current_episode, adjust_track, newtime)
 	    debug("End time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track)+". Saved to db." )
 
 
@@ -566,7 +601,10 @@ def play_pause(channel=0):
 
 def skip_forward(SKIP_TIME):
     # What happens when we go over the end?
-    mp.time_pos = mp.time_pos + SKIP_TIME
+    global current_episode
+    get_show_length(current_episode)
+    if mp.time_pos + SKIP_TIME < get_show_length(current_episode):
+        mp.time_pos = mp.time_pos + SKIP_TIME
 
 
 def next_track(channel=0):
@@ -574,7 +612,8 @@ def next_track(channel=0):
 
     if not(ep.lasttrack(current_episode, current_track)):
         current_track += 1
-        
+
+    #debug(">>" + str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
     display(">>", str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
 
     try:
@@ -647,8 +686,10 @@ def update_position():
     global current_position, current_track
 
     if player_status == PAUSED:
+        #debug("Paused.")
         return True     #playing normally (not seeking), paused so don't ask for position
-    
+
+    #debug("Not Paused.")
     pos = mp.time_pos
     
     #really hacky bit but it seems sometimes mplayer only responds every second call
@@ -709,6 +750,15 @@ def display(line1, line2):
 
 
 def debug(msg, value=""):
+    DEBUG_LOG = False
+    if DEBUG_LOG:
+        f = open("logfile.txt","a")
+        try:
+            f.write(msg+"\n")
+            f.write(value+"\n")
+        except:
+            f.write("OOOPS"+"\n")
+        f.close
     if DEBUG and SCREEN:
         text = msg
 
@@ -719,7 +769,13 @@ def debug(msg, value=""):
             max_yx = debug_display.getmaxyx()        
 
             for i in range(0, len(text), max_yx[1]):
-                debug_display.addstr(max_yx[0]-1,0, text[i:i + max_yx[1]])
+                try:
+                    debug_display.addstr(max_yx[0]-1,0, text[i:i + max_yx[1]])
+                except:
+                    try:
+                        debug_display.addstr(max_yx[0]-1,0, text[i:i + max_yx[1]].encode('utf-8').strip())
+                    except:
+                        debug_display.addstr(max_yx[0]-1,0, "debug_display string conversion failed.")
                 debug_display.scroll()
 
             debug_display.hline(0,0, "-", max_yx[1])
@@ -730,7 +786,7 @@ def debug(msg, value=""):
 
 
 def play_episode(index):
-    global player_status
+    global player_status, show_length, mplength
     
     episode_file = ep.filename(index)
 
@@ -740,6 +796,7 @@ def play_episode(index):
     except:
         sys.exit("Cannot play " + str(episode_file) + " " + str(index) + ".")
     player_status = PLAYING
+    mplength = None
 
     led(0,0,0)
     line1 = ep.title(index)
@@ -747,6 +804,21 @@ def play_episode(index):
 
     display(line1, line2)
 
+    show_length = get_show_length(index)
+
+
+def get_show_length(index):
+    global ep, mplength
+    if mplength == None:
+        mplength = mp.length
+        debug("mplength: "+str(mplength))
+    if mplength == None:
+        return ep.duration(index)
+    else:
+        return mplength
+    #sometimes mplayer doesn't report back length for a while.
+#    while(show_length == None):
+#        show_length = mp.length
 
 def check_and_fix_filename_sync_bug():
     global current_position, current_track, current_episode
@@ -905,10 +977,11 @@ def log_favourited(data):
     f = open(os.path.join(DIR_AND_FAVOURITED_LOG_FILE), "a")
     f.write(data)
     f.close
+
     
 
 def main_loop(screen):
-    global current_episode, stdscr, main_display, debug_display, favourited_log_string
+    global current_episode, stdscr, main_display, debug_display, favourited_log_string, show_length
     # Surely needs: global current_track
     global current_track
     global ep, JB_DATABASE
@@ -949,13 +1022,26 @@ def main_loop(screen):
         #B: Though in an ideal world it would immediately play the one it's downloading.
         sys.exit("Can't find any episodes to play in "+ JB_DATABASE)
 
+    #current_episode = ep.nepisodes() - 1
     current_episode = ep.nepisodes() - 1
-    play_episode(current_episode)
+    launch_track = -1
+    if (len(sys.argv) > 1):
+        current_episode = int(sys.argv[1])
+    if (len(sys.argv) > 2):
+        launch_track = int(sys.argv[2])
+    while current_episode > -1:
+        play_and_display(launch_track)
+        current_episode =  current_episode - 1
+    quit()
 
-    #sometimes mplayer doesn't report back length for a while.
-    show_length = None
-    while(show_length == None):
-        show_length = mp.length
+
+def play_and_display(launch_track):
+    global current_episode,stdscr, main_display, debug_display, favourited_log_string, show_length
+    global current_track, current_position
+    global ep
+
+    play_episode(current_episode)
+    show_length = get_show_length(current_episode)
 
     seeking = not(update_position())
     ticker_index = 0
@@ -968,37 +1054,43 @@ def main_loop(screen):
 
     led_state = 0
 
-    while(current_position < show_length):
+    # Added "-2" here because of "end of track" bug:
+    while(current_position < int(show_length) - 2):
 
         check_and_fix_filename_sync_bug()
-
+        show_length = get_show_length(current_episode)
+        if launch_track > -1 and current_position > 0:
+            current_track = launch_track
+            launch_track = -1
+            this_track()
         if (last_track != current_track) or (last_episode != current_episode):
             last_track = current_track
             #B: Inserted this, because of issue below, see next try/except block:
 	    if last_episode != current_episode:
                 current_track = -1
-                debug("New episode: "+ep.pid(current_episode)+", date="+ep.date(current_episode))
+                debug("New episode: "+str(current_episode) + ", pid=" + ep.pid(current_episode)+", date="+ep.date(current_episode))
             last_episode = current_episode
             #episode = episodes[current_episode]
             if current_track < 0:
                 scroller1 = Scroller("", ep.title(current_episode), "      ",    line_size=LINEWIDTH)
                 scroller2 = Scroller("", ep.date(current_episode), "  ", line_size=LINEWIDTH)
             else:
+                track_name = ep.tracktitle(current_episode,current_track)
+                artist = ep.trackartist(current_episode,current_track)
+                track_no  = str(current_track + 1) + " "
                 try:
-                    track_name = ep.tracktitle(current_episode,current_track)
-                    artist = ep.trackartist(current_episode,current_track)
                     scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)                
-                    track_no  = str(current_track + 1) + " "
                     scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
-                    if ep.endseconds(current_episode, current_track) > 0:
-                        infostr = "*"
-                    else:
-                        infostr = ""
-                    debug("Track " + str(track_no) +  track_name + ", " + format_time(ep.seconds(current_episode,current_track)) + 
-                          "-" + format_time(get_track_end(current_episode,current_track))+ infostr)
                 except:
                     debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+
                           str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
+                if ep.endseconds(current_episode, current_track) > 0:
+                    infostr = "*"
+                else:
+                    infostr = ""
+                debug("Track " + str(track_no) +  track_name + ", " + format_time(ep.seconds(current_episode,current_track)) + 
+                          "-" + format_time(get_track_end(current_episode,current_track))+ infostr + "; " + ep.time_info(current_episode,current_track))
+
 
                 show_favourite(ep.favourite(current_episode,current_track))
 
@@ -1007,8 +1099,6 @@ def main_loop(screen):
                 if favourited_log_string != None:
                     log_favourited(favourited_log_string)
                     favourited_log_string = None                
-
-
 
         line1 = scroller1.scroll()
         line2 = scroller2.scroll()
@@ -1023,7 +1113,6 @@ def main_loop(screen):
         else:
             status = "#"
             
-
         line2 = line2[0:LINEWIDTH-2].ljust(LINEWIDTH-2, " ") + " " + status
         line1 = line1[0:LINEWIDTH-6].ljust(LINEWIDTH-6, " ") + " " + format_time(current_position)
         
@@ -1037,6 +1126,11 @@ def main_loop(screen):
             time.sleep(0.4)
             
         seeking = not(update_position())
+    
+    debug("Showlength " + str(show_length) + " reached")
+    current_position = 0
+    # Rather than quit, should go to previous episode...
+    # quit()
 
 
 def quit():

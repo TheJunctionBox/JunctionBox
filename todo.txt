@@ -12,6 +12,8 @@ Bug: fix display bug that eats non ascii chars leaving the string too short
 
 Bug: Fix flashing of previous track in display when navigating
 
+Bug: If time > 99 minutes, display is 100:1.
+
 /Segment loading needs discussing. There's performance implications by loading all segments at start, and
  give that segments are saved when favourties are made, this can easily lead to inconsistencies after a crash.
  B's suggestion is to load segment files when needed.
@@ -22,9 +24,11 @@ Bug: Fix flashing of previous track in display when navigating
  Put in a fix for the played file going out of sync with the file indicated by current_episode. Seems to be a problem with mp.loadfile not catching up.
  However: While the episode is seeking (in mplayer), it's possible to also seek for the track (in the display). But - when the track starts playing, it plays from beginning.
 
-Bug: "Pause bug" is back: When paused, occasionally audio plays.
+Bug: "Pause bug" is back: When paused, occasionally audio plays. Investigated: Seems to be problem with mpylayer
 
 Bug: "Track seeking". Intermittent. When you press vvv or more, sometimes the seeking doesn't stop, but the time keeps flicking forward in say 5 s increments.
+
+Bug: End of track. update_position returns False, so display shows seeking, and track never quits.
 
 Make rapid repeated navigation work instead of looping on the same track
 

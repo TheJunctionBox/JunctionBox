@@ -10,6 +10,7 @@ import ConfigParser
 from os.path import expanduser
 import os.path
 import sys
+import json
 
 DEBUG = False
 HTML_FILE_LONG_NAME = False
@@ -68,9 +69,12 @@ def get_segment_files(episodes):
         segment_data_file = os.path.join(JB_DATABASE_TRACKS, pid + ".p")
         if HTML_FILE_LONG_NAME:
             segment_file = os.path.join(episode['dir'], episode['fileprefix'] + '.segments.html')
+            segment_json_file = os.path.join(episode['dir'], episode['fileprefix'] + '.playlist.json')
         else: 
             segment_file = os.path.join(episode['dir'], episode['pid'] + '.html')
+            segment_json_file = os.path.join(episode['dir'], episode['pid'] + '.json')
         #print segment_file + " " + episode['dir'] + " " + pid
+        # Retrieve segments html file:
         if not(os.path.isfile(segment_file)):
             if DEBUG: 
                 print 'Downloading to: ' + segment_file
@@ -79,24 +83,94 @@ def get_segment_files(episodes):
             f = open(segment_file, 'w')
             f.write(segment_html)
             f.close()
-        else:
-            #if DEBUG: 
-            #    print 'Reusing: ' + segment_file
-            f = open(segment_file, 'r')
-            segment_html = f.read()
-            f.close()
-        if not(os.path.isfile(segment_data_file)):
+        # Retrieve segments json file:
+        if not(os.path.isfile(segment_json_file)):
             if DEBUG: 
-                print "Creating: " + segment_data_file
-            segment_data = parse_segment_html(segment_html)
+                print 'Downloading to: ' + segment_json_file
+            segment_json_data = urllib.urlopen('http://www.bbc.co.uk/programmes/' + pid + '/playlist.json').read()
+            # Need to check that this worked, i.e. that segment_html is not empty!
+            f = open(segment_json_file, 'w')
+            f.write(segment_json_data)
+            f.close()
+        UPDATE_MODE = False
+        NEW_SEGMENT_DATA_MODE = False
+        # If there is no database entry, create one:
+        if not(os.path.isfile(segment_data_file)) or UPDATE_MODE or NEW_SEGMENT_DATA_MODE:
             # Should only save this if segments were retrieved - see comment in parse_segment_html()
+            if not(os.path.isfile(segment_data_file)):
+                if DEBUG: 
+                    print "Creating: " + segment_data_file
+                f = open(segment_file, 'r')
+                segment_html = f.read()
+                f.close()
+                segment_data = parse_segment_html(segment_html)
+            else:
+                segment_data = pickle.load(open(segment_data_file, "rb"))
+            if NEW_SEGMENT_DATA_MODE:
+                segment_data2 = parse_segment_html(segment_html)
+                segment_data = segment_data_merge(segment_data, segment_data2)
+            f = open(segment_json_file, 'r')
+            segment_json_data = f.read()
+            f.close()
+            segment_json = json.loads(segment_json_data)
+            if 'allAvailableVersions' in segment_json:
+                if len(segment_json['allAvailableVersions']) > 0:
+                    if DEBUG: 
+                       print "\n--- Update: " + segment_data_file
+                    playlist = segment_json['allAvailableVersions'][0]['markers']
+                    segment_data = data_merge(segment_data, playlist)
+            # Normalise: Should check that all required fields are there
+            for i in range(len(segment_data)):
+                if not('ends' in segment_data[i]):
+                    segment_data[i]['ends'] = -1
+                if not('start' in segment_data[i]):
+                    segment_data[i]['start'] = -1
+                if not('mystart' in segment_data[i]):
+                    segment_data[i]['mystart'] = -1
+            # Write to database:
             pickle.dump(segment_data, open(segment_data_file, "wb"))
 
+def segment_data_merge(segment_data, segment_data2):
+    if len(segment_data) != len(segment_data2):
+        print "ERROR: len(segment_data) != len(segment_data2)"
+    # Copy fields from segment_data2 to segment_data as needed.
+    for i in range(len(segment_data)):
+        pass
+    return segment_data
+
+def data_merge(segment_data, playlist):
+    if len(playlist) != len(segment_data):
+        print "ERROR: len(playlist) != len(segment_data)"
+    if playlist != None:
+        for i in range(len(segment_data)):
+            segment_data[i]['start'] = playlist[i]['start']
+            segment_data[i]['title'] = playlist[i]['text'] 
+#             if (playlist[i]['text'] == segment_data[i]['track']):
+#                 try:
+#                     print str(i) + " OK " + format_time(playlist[i]['start'])+" "+ playlist[i]['text'].encode('utf-8').strip() + " = " + segment_data[i]['track'] 
+#                 except:
+#                     print str(i)+ "  FAIL =="
+#             else:
+#                 try:
+#                     print str(i) + " !! " + format_time(playlist[i]['start'])+" "+ playlist[i]['text'].encode('utf-8').strip() + " = " + segment_data[i]['track'] 
+#                 except:
+#                     print str(i)+ "  FAIL !!"
+# #                   print format_time(playlist[i]['start'])+" "+ playlist[i]['text'].encode('utf-8').strip() + "; " + format_time(segment_data[i]['seconds']) + " " + \
+# #                         segment_data[i]['track'] + ", " + segment_data[i]['artist']
+    return segment_data
+
+def format_time(seconds):
+    seconds = int(seconds)
+    secs = seconds % 60
+    mins = (seconds - secs) / 60
+
+    return str(mins).rjust(2, "0") + ":" + str(secs).rjust(2, "0")
 
 def parse_segment_html(html):
     # expression needs to be improved to capture additional data (cf. todo.txt). Also note that sometimes times aren't present, in which case <div[^>]*>(\d\d):(\d\d)<\/div> is missing.
     # Should maybe add "(?:....)?" but need to make sure that this doesn't cause problems down the line. Most likely problem with older episodes only.
     expression = r'<div class="segment__track">\s*<div[^>]*>(\d\d):(\d\d)<\/div>.*?<span class="artist" [^>]*>([^<>]*)<\/span>.*?<span property="name">([^<>]*)<\/span>'
+#  + '(?:\s*<\/p>\s*(<ul.*?<\/ul>)?(\s*<ul.*?<\/ul>)?)?'
 
     p = re.compile(expression)
 
@@ -109,7 +183,7 @@ def parse_segment_html(html):
         track = m.group(4)
         
         #B: Tracks should have end-times. 
-        data.append({'loc':loc, 'seconds':seconds, 'artist':artist, 'track':track,'ends': -1,
+        data.append({'loc':loc, 'seconds':seconds, 'artist':artist, 'track':track,'ends': -1, 'mystart': -1,
                      'favourite':False, 'favourited':False, 'heard':False})
 
     return data
