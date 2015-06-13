@@ -1156,8 +1156,8 @@ def play_and_display(launch_track):
                 try:
                     debug("Playing track " + str(current_track) + ", in ep=" + str(current_episode)  +  " (" + track_name  + ") "
                           + format_time(ep.seconds(current_episode,current_track)) + ep.starttype(current_episode,current_track)  
-                          + "-" + format_time(get_track_end(current_episode,current_track))+ ep.endtype(current_episode,current_track) 
-                          + "; " + ep.time_info(current_episode,current_track))
+                          + "-" + format_time(get_track_end(current_episode,current_track))+ ep.endtype(current_episode,current_track) )
+                          #+ "; " + ep.time_info(current_episode,current_track))
                 except:
                    debug("Playing track " + str(track_no))
 
