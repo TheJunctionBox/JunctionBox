@@ -1366,7 +1366,7 @@ if __name__ == '__main__':
         sys.exit("Exitting normally after db operation.")
     if len(sys.argv) > 1 and sys.argv[1] == "applypatch":
         ep = Episodes_Database(JB_DATABASE)
-        ep.read_db_patch(sys.argv[2])
+        ep.apply_db_patch(sys.argv[2])
         sys.exit("Exitting normally after db operation.")
     curses.wrapper(main_loop)
 
