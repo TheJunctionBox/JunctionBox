@@ -1,6 +1,7 @@
 #example junctionbox config file
 [basic]
 #debug=False
+#debug_log=False
 #buttons=False
 #lcd=False
 #led=False

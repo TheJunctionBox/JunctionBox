@@ -706,7 +706,7 @@ def adjust_track_start():
     oldtime = ep.start(current_episode, adjust_track)
     if newtime > 0: 
         ep.setstart(current_episode, adjust_track, newtime)
-	debug("Start time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db." )
+	debug("    Start time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db." )
 
 def adjust_track_end():
     global current_track
@@ -731,7 +731,7 @@ def adjust_track_end():
             infostr = "*"
         if newtime > 0: 
             ep.setend(current_episode, adjust_track, newtime)
-	    debug("End time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track)+". Saved to db." )
+	    debug("    End time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track)+". Saved to db." )
 
 
 def play_pause(channel=0):
@@ -1253,7 +1253,7 @@ def play_and_display(launch_track):
 	    if last_episode != current_episode:
                 last_track = -2
                 current_track = -1
-                debug("New episode: "+str(current_episode) + ", pid=" + ep.pid(current_episode)+", date="+ep.date(current_episode))
+                debug("\nNew episode: "+str(current_episode) + ", pid=" + ep.pid(current_episode)+", date="+ep.date(current_episode))
             last_episode = current_episode
             #episode = episodes[current_episode]
             if current_track < 0:
