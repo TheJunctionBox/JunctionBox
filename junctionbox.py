@@ -15,10 +15,11 @@ import os.path
 import sys
 import string
 import shutil
-
+import json
 
 #Default Options
-DEBUG = True             # enables debug print statements
+DEBUG = True             # enables debug print statements to screen
+DEBUG_LOG = False        # enables debug print statements logged to file
 UNPRINTABLE_CHAR = "#"   # character to replace unprintable characters on the display
 
 DATA_DIRECTORY = os.path.join(expanduser("~"), "jb_data")     #Default data directory
@@ -116,6 +117,8 @@ def load_config():
             confitems = dict(Config.items('basic'))
             if 'debug' in confitems:
                 DEBUG = getboolean(confitems['debug'])
+            if 'debug_log' in confitems:
+                DEBUG_LOG = getboolean(confitems['debug_log'])
             if 'buttons' in confitems:
                 BUTTONS = getboolean(confitems['buttons'])
             if 'lcd' in confitems:
@@ -214,11 +217,14 @@ class Episodes_Database:
 # firsttrack(current_episode, current_track): True if current_track is the first track in current_episode
 # lasttrack(current_episode, current_track): True if current_track is the last track in current_episode
 # favourite(current_episode, current_track): Favourite status of current_track in current_episode
-# seconds(current_episode, current_track): Start time in seconds of current_track in current_episode
+# start(current_episode, current_track): Start time in seconds of current_track in current_episode
 # endseconds(current_episode, current_track): End time in seconds of current_track in current_episode (-1 by default)
 # setfavourite(current_episode, current_track, favourite): Set favourite status of current_track in current_episode to favourite
 # setstart(current_episode, current_track, seconds): Set start time of current_track in current_episode to seconds
 # setend(current_episode, current_track, seconds): Set end time of current_track in current_episode to seconds
+
+# dump_db_patch(outfile): Export user-modified data from db to outfile.
+# read_db_patch(infile): Import data from infile to db.
 
     # Class-level variable to stop concurrent write access.
     write_access = False
@@ -326,13 +332,20 @@ class Episodes_Database:
             return None
 
     def _trackfile(self, current_episide):
-        return os.path.join(self.locTracks, self.pid(current_episide) + ".p")
+        #return os.path.join(self.locTracks, self.pid(current_episide) + ".p")
+        return os.path.join(self.locTracks, self.pid(current_episide) + ".json")
 
     def _loadtracks(self,  current_episode):
         if self.validepisode(current_episode):
             if not(self.loadedtrackpid == self.pid(current_episode)):
 	        if os.path.isfile(self._trackfile(current_episode)):
-                    self.tracks = pickle.load(open(self._trackfile(current_episode),"rb"))
+                    #self.tracks = pickle.load(open(self._trackfile(current_episode),"rb"))
+#                    with open(self._trackfile(current_episode), 'r') as infile:
+#                        self.tracks = json.load(infile)
+                    f = open(self._trackfile(current_episode), 'r')
+                    json_playlist_string = f.read()
+                    f.close()
+                    self.tracks = json.loads(json_playlist_string)
                     self.loadedtrackpid = self.pid(current_episode)
                     return True
                 else:
@@ -345,7 +358,9 @@ class Episodes_Database:
            return None
 
     def _savetracks(self,  current_episode):
-        pickle.dump(self.tracks, open(self._trackfile(current_episode), "wb"))
+        #pickle.dump(self.tracks, open(self._trackfile(current_episode), "wb"))
+        with open(self._trackfile(current_episode), 'w') as outfile:
+            json.dump(self.tracks, outfile, indent=4)
 
     def ntracks(self,  current_episode):
         self._loadtracks(current_episode)
@@ -378,6 +393,16 @@ class Episodes_Database:
         else:
             return None
 
+    def trackid(self, current_episode, current_track):
+        self._loadtracks(current_episode)
+        if self.validtrack(current_episode, current_track):
+            if 'id' in self.tracks[current_track]:
+                return self.tracks[current_track]['id']
+            else:
+                return ""
+        else:
+            return None
+
     def tracktitle(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
@@ -398,8 +423,7 @@ class Episodes_Database:
         else:
             return None
 
-    # Could be renamed to "start"
-    def seconds(self, current_episode, current_track):
+    def start(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
 #            divres = divmod(self.tracks[current_track]['seconds'], 60)
@@ -412,6 +436,18 @@ class Episodes_Database:
                 if self.tracks[current_track]['start'] >= 0:
                     return self.tracks[current_track]['start']
             return self.tracks[current_track]['seconds']
+        else:
+            return None
+
+    def mystart(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            if 'mystart' in self.tracks[current_track]:
+                if self.tracks[current_track]['mystart'] > -1:
+                    return self.tracks[current_track]['mystart']
+                else:
+                    return -1
+            return -1
         else:
             return None
 
@@ -446,6 +482,7 @@ class Episodes_Database:
             #       " - " + self.format_time(self.endseconds(current_episode,current_track) )
         else:
             return "--/--"
+
     # Could be renamed to "end"
     def endseconds(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
@@ -517,31 +554,110 @@ class Episodes_Database:
             self._savetracks(current_episode)
             self.write_access = False
 
-def get_track_end(current_episode, current_track):
-    if current_track == -1:
-        return ep.seconds(current_episode, current_track+1)
-    if ep.endseconds(current_episode, current_track) > 0:
-        return ep.endseconds(current_episode, current_track)
-    if ep.lasttrack(current_episode, current_track):        
-        return ep.duration(current_episode)
-    return ep.seconds(current_episode, current_track+1)
 
-def example_list():
-    # Self-contained example to list whole database.
-    global ep, JB_DATABASE
-    load_config()
-    ep = Episodes_Database(JB_DATABASE)
-    for i in range(ep.nepisodes()):
-        try:
-            print str(i) + " " + ep.title(i) + " " + ep.date(i)
-        except:
-            print str(i) + " ENCODING_ERROR " + ep.date(i)
-        for j in range(ep.ntracks(i)):
-            if ep.endseconds(i,j) > 0:
-                infostr = "*"
-            else:
-                infostr = ""
-            print "  (" + str(j) + ") " + str(ep.favourite(i,j)) + " " + format_time(ep.seconds(i,j)) + "-" + format_time(get_track_end(i,j)) + infostr + " " + ep.tracktitle(i,j) + " - " + ep.trackartist(i,j)
+    def dump_db_patch(self,outfile):
+        # Self-contained example to list whole database.
+        updates = []
+        upd = {}
+        for i in range(self.nepisodes()):
+            try:
+                print str(i) + " " + self.title(i) + " " + self.date(i)
+            except:
+                print str(i) + " ENCODING_ERROR " + self.date(i)
+            updates = []
+            for j in range(self.ntracks(i)):
+                pid = self.pid(i)
+                # print "    " + str(i) + " " + str(self.mystart(i,j)) + " " +  str(self.favourite(i,j)) + " " + str(self.endseconds(i,j))
+                if (self.mystart(i,j) > -1 or self.favourite(i,j) or self.endseconds(i,j) > -1):
+                    update = {}
+                    update['pid'] = self.pid(i)
+                    update['epno'] = i
+                    update['trackno'] = j
+                    update['title'] =  self.tracktitle(i,j)
+                    update['artist'] = self.trackartist(i,j)
+                    update['id'] = self.trackid(i,j)
+                    if self.mystart(i,j) > -1:
+                        update['mystart'] = self.mystart(i,j)
+                    if self.endseconds(i,j) > -1:
+                        update['end'] = self.endseconds(i,j)
+                    if self.favourite(i,j): 
+                        update['favourite'] = self.favourite(i,j)
+                    # update = { 'pid':  self.pid(i), 'epno': i, 'start': self.start(i,j) ,
+                    #               'end': get_track_end(i,j) ,
+                    #               'starttype': self.starttype(i,j) ,
+                    #               'endtype': self.endtype(i,j) ,
+                    #               'favourite': self.favourite(i,j),
+                    #               'trackno': j,
+                    #               'title': self.tracktitle(i,j) ,
+                    #               'artist': self.trackartist(i,j) }
+                    updates.append(update)
+                    try:
+                        print "  (" + str(j) + ") " + str(self.favourite(i,j)) + " " + format_time(self.start(i,j)) + self.starttype(i,j) + "-" + format_time(self.get_track_end(i,j)) + self.endtype(i,j) + " " + self.tracktitle(i,j) + " - " + self.trackartist(i,j)
+                    except:
+                        print "  (" + str(j) + ") " + str(self.favourite(i,j)) + " " + format_time(self.start(i,j)) + "-" + format_time(self.get_track_end(i,j)) 
+	    if len(updates) > 0:
+                upd[pid] =  updates 
+
+        with open(outfile, 'w') as ofile:
+            json.dump(upd, ofile, indent=4)
+        print "Done."
+
+    def read_db_patch(self,infile):
+        upd = {}
+        with open(infile, 'r') as ifile:
+            upd = json.load(ifile)
+        for pid in upd:
+            print pid
+            updates = upd[pid]
+            for update in updates:
+                i = update['epno']
+                j = update['trackno']
+                try:
+                    print "  " + str(self.tracktitle(i,j)) + ",  " + str(self.trackartist(i,j)) + " = " + str(update['title']) + ",  " + str(update['artist'])
+                except:
+                    print "  " + str(i) + ",  " + str(j) + ", title not printable"
+                if not ('id' in update):
+                    update['id'] = self.trackid(i,j)
+                if (self.tracktitle(i,j) == update['title'] and self.trackartist(i,j) == update['artist'] and update['id'] == self.trackid(i,j) and update['pid'] == self.pid(i)):
+                    if 'mystart' in update:
+                        if self.mystart(i,j) == -1:
+                            self.setstart(i,j, update['mystart'])
+                            print "        mystart updated."
+                        else:
+                            if update['mystart'] != self.mystart(i,j):
+                                print "        ERROR: Update of mystart failed because it was already set: " + str(self.mystart(i,j))
+                            else:
+                                print "        ok update of mystart: " + str(self.mystart(i,j))
+                    if 'end' in update:
+                        if self.endseconds(i,j) == -1:
+                            self.setend(i,j, update['end'])
+                            print "        mystart updated."
+                        else:
+                            if update['end'] != self.endseconds(i,j):
+                                print "        ERROR: Update of end failed because it was already set: "  + str(self.endseconds(i,j))
+                            else:
+                                print "        ok update of end: " + str(self.endseconds(i,j))
+                    if 'favourite' in update:
+                        if self.favourite(i,j) != update['favourite']:
+                            self.setfavourite(i,j, update['favourite'])
+                            print "        favourite updated: " + str(update['favourite']) + " " + str(self.favourite(i,j))
+                        else:
+                            if update['favourite'] != self.favourite(i,j):
+                                print "        ERROR: Update of favourite failed because it was already set: "  + str(self.favourite(i,j))
+                            else:
+                                print "        ok update of fav: " + str(self.favourite(i,j))
+                else:
+                    print "        ERROR: TRACK UPDATE FAILED because metadata didn't match: " + str(update['id']) + "=" + str(self.trackid(i,j)) + ", " + str(update['pid']) + "=" + str(self.pid(i))
+        print "Done."
+
+    def get_track_end(self,current_episode, current_track):
+        if current_track == -1:
+            return self.start(current_episode, current_track+1)
+        if self.endseconds(current_episode, current_track) > 0:
+            return self.endseconds(current_episode, current_track)
+        if self.lasttrack(current_episode, current_track):        
+            return self.duration(current_episode)
+        return self.start(current_episode, current_track+1)
 
 def prev_episode(channel=0):
     global current_episode
@@ -558,7 +674,7 @@ def prev_track(channel=0):
 
     if not(ep.firsttrack(current_episode,current_track)):
         current_track -= 1
-        mp.time_pos = ep.seconds(current_episode, current_track) 
+        mp.time_pos = ep.start(current_episode, current_track) 
     else:
         current_track = 0
         mp.time_pos = 0
@@ -580,14 +696,14 @@ def adjust_track_start():
             adjust_track = current_track
         else:
             # Work out which track boundary we are near:
-            currtr_diff = abs( newtime - ep.seconds(current_episode, current_track))
-            nexttr_diff = abs( newtime - ep.seconds(current_episode, current_track+1))
+            currtr_diff = abs( newtime - ep.start(current_episode, current_track))
+            nexttr_diff = abs( newtime - ep.start(current_episode, current_track+1))
             if (currtr_diff < nexttr_diff):
                 adjust_track = current_track
             else:
                 adjust_track = current_track + 1
-    time_diff = newtime - ep.seconds(current_episode, adjust_track)
-    oldtime = ep.seconds(current_episode, adjust_track)
+    time_diff = newtime - ep.start(current_episode, adjust_track)
+    oldtime = ep.start(current_episode, adjust_track)
     if newtime > 0: 
         ep.setstart(current_episode, adjust_track, newtime)
 	debug("Start time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db." )
@@ -604,13 +720,13 @@ def adjust_track_end():
                 adjust_track = current_track + 1
             else:
                 # If we are just into the next track, still adjust the previous track...
-                if newtime + 5 < ep.seconds(current_episode, current_track+1):
+                if newtime + 5 < ep.start(current_episode, current_track+1):
                     adjust_track = current_track
                 else:
                     adjust_track = current_track + 1
         time_diff = newtime - ep.endseconds(current_episode, adjust_track)
         oldtime_raw = ep.endseconds(current_episode, adjust_track)
-        oldtime = get_track_end(current_episode, adjust_track)
+        oldtime = ep.get_track_end(current_episode, adjust_track)
 	if oldtime_raw == oldtime:
             infostr = "*"
         if newtime > 0: 
@@ -640,7 +756,7 @@ def next_track(channel=0):
     display(">>", str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
 
     try:
-        mp.time_pos = ep.seconds(current_episode, current_track) 
+        mp.time_pos = ep.start(current_episode, current_track) 
     except:
         debug("Cannot advance track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
 
@@ -652,7 +768,7 @@ def this_track(channel=0):
     else:       
         display("><", str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
         try:
-            mp.time_pos = ep.seconds(current_episode, current_track) 
+            mp.time_pos = ep.start(current_episode, current_track) 
         except:
             debug("Cannot seek to track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
     
@@ -668,7 +784,7 @@ def next_episode(channel=0):
 
 def get_fav_log_string(episode,track):
 
-    start_end_time = format_time(ep.seconds(episode,track))
+    start_end_time = format_time(ep.start(episode,track))
     if (ep.endseconds(episode,track) > 0):
         start_end_time = start_end_time + "-" + format_time(ep.endseconds(episode,track))
     data = ep.tracktitle(episode,track) + "\n" + ep.trackartist(episode,track) + "\n" + \
@@ -725,7 +841,7 @@ def update_position():
 
         track_index = ep.ntracks(current_episode) - 1
         for i in range(ep.ntracks(current_episode)):
-            if ep.seconds(current_episode, i ) > pos:
+            if ep.start(current_episode, i ) > pos:
                 track_index = i - 1
                 break
 
@@ -773,7 +889,6 @@ def display(line1, line2):
 
 
 def debug(msg, value=""):
-    DEBUG_LOG = False
     if DEBUG_LOG:
         f = open("logfile.txt","a")
         try:
@@ -969,10 +1084,10 @@ def change_mode():
 
 def seek_next_fav():
     global current_track
-    if not(ep.favourite(current_episode,current_track))  or current_position > get_track_end(current_episode,current_track):
+    if not(ep.favourite(current_episode,current_track))  or current_position > ep.get_track_end(current_episode,current_track):
         if not(ep.lasttrack(current_episode,current_track)):
-            i = current_track
-            while i in range(current_track, ep.ntracks(current_episode)-1) and not ep.favourite(current_episode,i):
+            i = current_track+1
+            while (i in range(current_track+1, ep.ntracks(current_episode)-1)) and not ep.favourite(current_episode,i):
                 i = i + 1
             if ep.lasttrack(current_episode,i):
                 if not ep.favourite(current_episode,i):
@@ -1032,7 +1147,7 @@ def handle_keypress(c):
     elif c == ord('V'):
         mute_unmute()
     elif c == ord('?'):
-        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; V: mute; q: quit; ?: this help; C: play/pause bug fix\n<,>: back/forward some secs, /: adjust track startm \\: adjust track end, m: mode")
+        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; V: mute; q: quit; ?: this help; C: play/pause bug fix\n<,>: back/forward some secs, /: adjust track startm \\: adjust track end, m: play mode")
     elif c == ord('q'):
         quit()
 
@@ -1040,7 +1155,10 @@ def handle_keypress(c):
 #Note: a track is deliberately not removed from the log file if later un-favourited. 
 def log_favourited(data):
     f = open(os.path.join(DIR_AND_FAVOURITED_LOG_FILE), "a")
-    f.write(data)
+    try:
+        f.write(data)
+    except:
+        debug("Could not write favourite data to logfile!")
     f.close
 
     
@@ -1051,8 +1169,6 @@ def main_loop(screen):
     global current_track
     global ep, JB_DATABASE
     global mp
-
-    load_config()
 
     mp = mpylayer.MPlayerControl()
 
@@ -1155,8 +1271,8 @@ def play_and_display(launch_track):
                           str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
                 try:
                     debug("Playing track " + str(current_track) + ", in ep=" + str(current_episode)  +  " (" + track_name  + ") "
-                          + format_time(ep.seconds(current_episode,current_track)) + ep.starttype(current_episode,current_track)  
-                          + "-" + format_time(get_track_end(current_episode,current_track))+ ep.endtype(current_episode,current_track) )
+                          + format_time(ep.start(current_episode,current_track)) + ep.starttype(current_episode,current_track)  
+                          + "-" + format_time(ep.get_track_end(current_episode,current_track))+ ep.endtype(current_episode,current_track) )
                           #+ "; " + ep.time_info(current_episode,current_track))
                 except:
                    debug("Playing track " + str(track_no))
@@ -1223,7 +1339,15 @@ def quit():
              "Continue listening like this: "+ sys.argv[0] + " " + str(current_episode)+" "+str(current_track))
 
 
-if __name__ == '__main__':
-#    example_list()
+if __name__ == '__main__':    
+    load_config()
+    if len(sys.argv) > 1 and sys.argv[1] == "dumppatch":
+        ep = Episodes_Database(JB_DATABASE)
+        ep.dump_db_patch(sys.argv[2])
+        sys.exit("Exitting normally after db operation.")
+    if len(sys.argv) > 1 and sys.argv[1] == "readpatch":
+        ep = Episodes_Database(JB_DATABASE)
+        ep.read_db_patch(sys.argv[2])
+        sys.exit("Exitting normally after db operation.")
     curses.wrapper(main_loop)
 
