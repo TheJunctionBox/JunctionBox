@@ -224,7 +224,7 @@ class Episodes_Database:
 # setend(current_episode, current_track, seconds): Set end time of current_track in current_episode to seconds
 
 # dump_db_patch(outfile): Export user-modified data from db to outfile.
-# read_db_patch(infile): Import data from infile to db.
+# apply_db_patch(infile): Import data from infile to db.
 
     # Class-level variable to stop concurrent write access.
     write_access = False
@@ -616,7 +616,7 @@ class Episodes_Database:
             json.dump(upd, ofile, indent=4)
         print "Done."
 
-    def read_db_patch(self,infile):
+    def apply_db_patch(self,infile):
         upd = {}
         with open(infile, 'r') as ifile:
             upd = json.load(ifile)
@@ -1364,7 +1364,7 @@ if __name__ == '__main__':
         ep = Episodes_Database(JB_DATABASE)
         ep.dump_db_patch(sys.argv[2])
         sys.exit("Exitting normally after db operation.")
-    if len(sys.argv) > 1 and sys.argv[1] == "readpatch":
+    if len(sys.argv) > 1 and sys.argv[1] == "applypatch":
         ep = Episodes_Database(JB_DATABASE)
         ep.read_db_patch(sys.argv[2])
         sys.exit("Exitting normally after db operation.")
