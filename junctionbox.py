@@ -423,6 +423,20 @@ class Episodes_Database:
         else:
             return None
 
+    def trackcontributors(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            return self.tracks[current_track]['contributors']
+        else:
+            return None
+
+    def tracketc(self, current_episode, current_track):
+        if self.validtrack(current_episode, current_track):
+            self._loadtracks(current_episode)
+            return self.tracks[current_track]['etc']
+        else:
+            return None
+
     def start(self, current_episode, current_track):
         if self.validtrack(current_episode, current_track):
             self._loadtracks(current_episode)
@@ -786,9 +800,14 @@ def get_fav_log_string(episode,track):
 
     start_end_time = format_time(ep.start(episode,track))
     if (ep.endseconds(episode,track) > 0):
-        start_end_time = start_end_time + "-" + format_time(ep.endseconds(episode,track))
+        start_end_time = start_end_time + "-" + format_time(ep.get_track_end(episode,track))
+    cont_etc = ""
+    if ep.trackcontributors(episode,track) != "":
+        cont_etc = ep.trackcontributors(episode,track) + "\n" 
+    if ep.tracketc(episode,track) != "":
+        cont_etc = cont_etc + ep.tracketc(episode,track) + "\n"
     data = ep.tracktitle(episode,track) + "\n" + ep.trackartist(episode,track) + "\n" + \
-           start_end_time + "\n" + \
+           cont_etc + start_end_time + "\n" + \
            ep.title(episode) + "  " + ep.date(episode) + "\n" + \
 	   "http://www.bbc.co.uk/programmes/" + ep.pid(episode) + "\n\n"
     return data
@@ -1270,12 +1289,12 @@ def play_and_display(launch_track):
                     debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+
                           str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
                 try:
-                    debug("Playing track " + str(current_track) + ", in ep=" + str(current_episode)  +  " (" + track_name  + ") "
+                    debug("- Playing track " + str(current_track) + ", in ep=" + str(current_episode)  +  " (" + track_name  + ") "
                           + format_time(ep.start(current_episode,current_track)) + ep.starttype(current_episode,current_track)  
                           + "-" + format_time(ep.get_track_end(current_episode,current_track))+ ep.endtype(current_episode,current_track) )
                           #+ "; " + ep.time_info(current_episode,current_track))
                 except:
-                   debug("Playing track " + str(track_no))
+                   debug("- Playing track " + str(track_no))
 
                 show_favourite(ep.favourite(current_episode,current_track))
 
