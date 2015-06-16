@@ -1,0 +1,25 @@
+Usage scenarios I've found myself doing:
+
+Discover new music
+
+    Turn on and listen
+
+    Read the current track details
+
+    Mark a favourite
+
+    Pause
+
+    Turn off
+
+    Leave it on to download the latest
+
+    Read and buy something from favourite list
+
+    Go back to a song from interruption
+
+    Find out episode
+
+    Skip a track when Vanessa hates it
+
+

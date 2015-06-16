@@ -5,13 +5,17 @@ TODO:
 Bug: fix "&amp;" etc in the display
     (see Tuesday 05-05-2015, track 15)
 
-Bug: fix display bug that eats non ascii chars leaving the string too short
-    non-ascii chars are being replaced by multiple "#"s (unicode issue?)
-    (Can the LCD display unicode chars? Maybe we don't need to strip them if we can get curses to work too)
-    (Needs further improvement - non-ascii display ok, but the string trimming doens't work well.)
+    /Bug: fix display bug that eats non ascii chars leaving the string too short
+        GOT IT! Have to convert the UTF-8 strings read from the .p file into unicode to manipulate them then back in to UTF-8 to print them to the screen. eg. str.ljust(...) will pad incorrectly the UTF-8 string.
+
+        non-ascii chars are being replaced by multiple "#"s (unicode issue?)
+        (Can the LCD display unicode chars? Maybe we don't need to strip them if we can get curses to work too)
+        (Needs further improvement - non-ascii display ok, but the string trimming doens't work well.)
 
 
 Bug: Fix flashing of previous track in display when navigating
+
+Get LCD working
 
 Make rapid repeated navigation work instead of looping on the same track
 
