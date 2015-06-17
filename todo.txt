@@ -55,8 +55,10 @@ Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directo
 /Add performer data to the exported favourited file
 
 Export favourites
+  B: Is this still current? The dumppatch option allows exporting favourites as json.
 
 Save location when quitting on pause
+  B:  The current ep/track is printed on quit.
 
 Create "heard" field and persist
 
@@ -64,7 +66,7 @@ Separate segment download from parsing
   B: Not sure this is still relevant? Needs discussing.
 
 Put extra fields in at the parsing stage
-  B: What extra fields?
+  B: What extra fields? Contributors, record label etc has been added
 
 create a while True main loop (around the current while loop)
   B: This may have been addressed.

@@ -645,7 +645,7 @@ class Episodes_Database:
                             if update['mystart'] != self.mystart(i,j):
                                 print "        ERROR: Update of mystart failed because it was already set: " + str(self.mystart(i,j))
                             else:
-                                print "        ok update of mystart: " + str(self.mystart(i,j))
+                                print "        ok - mystart: " + str(self.mystart(i,j))
                     if 'end' in update:
                         if self.endseconds(i,j) == -1:
                             self.setend(i,j, update['end'])
@@ -654,7 +654,7 @@ class Episodes_Database:
                             if update['end'] != self.endseconds(i,j):
                                 print "        ERROR: Update of end failed because it was already set: "  + str(self.endseconds(i,j))
                             else:
-                                print "        ok update of end: " + str(self.endseconds(i,j))
+                                print "        ok - end: " + str(self.endseconds(i,j))
                     if 'favourite' in update:
                         if self.favourite(i,j) != update['favourite']:
                             self.setfavourite(i,j, update['favourite'])
@@ -663,7 +663,7 @@ class Episodes_Database:
                             if update['favourite'] != self.favourite(i,j):
                                 print "        ERROR: Update of favourite failed because it was already set: "  + str(self.favourite(i,j))
                             else:
-                                print "        ok update of fav: " + str(self.favourite(i,j))
+                                print "        ok - fav: " + str(self.favourite(i,j))
                 else:
                     print "        ERROR: TRACK UPDATE FAILED because metadata didn't match: " + str(update['id']) + "=" + str(self.trackid(i,j)) + ", " + str(update['pid']) + "=" + str(self.pid(i))
         print "Done."
