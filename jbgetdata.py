@@ -12,11 +12,11 @@ import os.path
 import sys
 import json
 
-DEBUG = False
+DEBUG = True
 HTML_FILE_LONG_NAME = False
 
-DATA_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                    "../jb_data")
+DATA_DIRECTORY = os.path.join(expanduser("~"), "jb_data")     #Default data directory
+
 #Obsolete: EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
 EPISODE_DIRECTORY_LIST = "Late_Junction"
 
@@ -276,6 +276,16 @@ def get_episodes_metadata():
                     # brand = root.find(NAMESPACE + 'brand').text
                     episode = root.find(NAMESPACE + 'episode').text
                     duration = root.find(NAMESPACE + 'durations').text
+
+                    #If the meta data files are moved then they contain the wrong paths.
+                    #This code assumes the metadata files are in the same directory as 
+                    #the audio files and ignores the path in the metadata file.
+                    file_base = os.path.basename(filename)
+                    if DEBUG:
+                        print "file_base: " + file_base
+                    filename = os.path.join(metaDataDir, file_base)
+                    filedir = metaDataDir
+
                     if (os.path.isdir(filedir)  and os.path.isfile(filename)):
                         episodes.append({'filename': filename, 'pid':pid, 'episode': episode,
                                          'firstbcastdate': firstbcastdate, 'fileprefix': fileprefix, 'dir': filedir , 'ext': fileext, 'duration':duration })
@@ -284,7 +294,7 @@ def get_episodes_metadata():
                         print "  Error: No audio file for " + filename + " " + firstbcastdate
                 except:
                     #exception will be raised if node is missing from xml
-                    print "  Error finding tags in xml file: "+metaDataFile
+                    print "  Error finding tags in xml file: " + metaDataFile
 
             except:
                 print "  Error parsing xml file: "+metaDataFile
