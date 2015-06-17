@@ -1,6 +1,7 @@
 #example junctionbox config file
 [basic]
 #debug=False
+#debug_log=False
 #buttons=False
 #lcd=False
 #led=False
@@ -12,9 +13,9 @@
 #unprintable_char=#
 #data_directory=~/jb_data
 #fav_directory=~/jb_data
-#FAST_START = False
-#FAST_START_CACHE_TIME = 24 * 60 * 60 
-# lj_get_segment_files options
+#jb_database=~/jb_data/JB_DATABASE
+#episode_directory_list=A,B
+### jbgetdata.py options:
 #HTML_NAME_CONVENTION = "pid"
 #HTML_NAME_CONVENTION = "fileprefix"
 #HTML_FILE_LONG_NAME = True

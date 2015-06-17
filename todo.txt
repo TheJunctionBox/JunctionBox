@@ -12,10 +12,27 @@ Bug: fix "&amp;" etc in the display
         (Can the LCD display unicode chars? Maybe we don't need to strip them if we can get curses to work too)
         (Needs further improvement - non-ascii display ok, but the string trimming doens't work well.)
 
-
 Bug: Fix flashing of previous track in display when navigating
 
 Get LCD working
+
+Feature: If time > 99 minutes, display is 100:1. Would like to see hours.
+
+/Segment loading needs discussing. There's performance implications by loading all segments at start, and
+ give that segments are saved when favourties are made, this can easily lead to inconsistencies after a crash.
+ B's suggestion is to load segment files when needed.
+ This 'bug' has been addressed by implementing better access to the data through class Episodes_Database
+
+/Bug: When going back through say 5 episodes, sometimes the tracks displayed are from the previous episode. I.e. the
+ episode playing is not the same as the one for which tracks are displayed.
+ Put in a fix for the played file going out of sync with the file indicated by current_episode. Seems to be a problem with mp.loadfile not catching up.
+ However: While the episode is seeking (in mplayer), it's possible to also seek for the track (in the display). But - when the track starts playing, it plays from beginning.
+
+Bug: "Pause bug" is back: When paused, occasionally audio plays. Investigated: Seems to be problem with mpylayer
+
+Bug: "Track seeking". Intermittent. When you press vvv or more, sometimes the seeking doesn't stop, but the time keeps flicking forward in say 5 s increments.
+
+/Bug: End of track. update_position returns False, so display shows seeking, and track never quits.
 
 Make rapid repeated navigation work instead of looping on the same track
 
@@ -28,12 +45,14 @@ Refactor: make player and display objects (player object can raise events to get
 Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directories)
       Question is whether to do all sub-directories in DATA_DIRECTORY, or to list sub-dirs e.g. by date,
       so that you can choose one.
+  This has been partially addressed by EPISODE_DIRECTORY_LIST that allows loading of several directories.
 
-Tidy up the superfluous code in "lj_download_segments"
+/ Tidy up the superfluous code in "lj_download_segments"
 
-Add performers to data extracted from Late Junction XML
+/Add performers to data extracted from Late Junction XML
+    B: Data extraction needs re-doing anyway, as current regexp doesn't always work.
 
-Add performer data to the exported favourited file
+/Add performer data to the exported favourited file
 
 Export favourites
 
@@ -42,10 +61,13 @@ Save location when quitting on pause
 Create "heard" field and persist
 
 Separate segment download from parsing
+  B: Not sure this is still relevant? Needs discussing.
 
 Put extra fields in at the parsing stage
+  B: What extra fields?
 
 create a while True main loop (around the current while loop)
+  B: This may have been addressed.
 
 How can I see what episode I'm in?
 
@@ -53,7 +75,8 @@ How can I see what episode I'm in?
 UNPRIORITISED IDEAS:
 ====================
 
-B: As a suggestion, the tracks data (pickle dump .p files) might be better stored/persisted on disk in json or XML, to allow easier manual adding/editing of tracks. 
+/B: As a suggestion, the tracks data (pickle dump .p files) might be better stored/persisted on disk in json or XML, to allow easier manual adding/editing of tracks. 
+   This was done as part of various other improvements
 
 A display button to cycle through display options:
     just artist & track & status if paused / stopped
