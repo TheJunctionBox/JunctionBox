@@ -16,6 +16,7 @@ import sys
 import string
 import shutil
 import json
+from unidecode import unidecode
 
 #Default Options
 DEBUG = True             # enables debug print statements to screen
@@ -25,6 +26,8 @@ UNPRINTABLE_CHAR = "#"   # character to replace unprintable characters on the di
 DATA_DIRECTORY = os.path.join(expanduser("~"), "jb_data")     #Default data directory
 # Note: All directories dependent on DATA_DIRECTORY need to be updated in load_config(), because DATA_DIRECTORY can be set in user preferences, see "# Update dependent directories" below.
 FAV_DIRECTORY = DATA_DIRECTORY
+#TODO remove and search for subdirs instead
+EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
 JB_DATABASE = os.path.join(DATA_DIRECTORY, "JB_DATABASE" )
 FAVOURITED_LOG_FILE = "favourited.txt"
 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
@@ -37,6 +40,7 @@ SCREEN =   True          #set to True if a monitor is present
 HIDE_CURSOR = True       # Cursor is hidden by default, but some curses libs don't support it.
 LINEWIDTH = 16           # Characters available on display (per line) 
 DISPLAYHEIGHT = 2        # Lines available on display
+LCD_EMULATION = True     # If true the screen (monitor) will emulate the LCD display
 
 #Navigation options (not in .junctionbox yet)
 SKIP_TIME_MEDIUM = 60
@@ -871,39 +875,35 @@ def update_position():
         return False    #seeking
 
 
-def strip_UNPRINTABLE_CHARacters(in_string):
+def strip_unprintable_characters(in_string):
 
-    out_string = ""
-
-    for s in in_string:
-        if s in string.printable:
-            out_string = out_string + s
-        else:
-            out_string = out_string + UNPRINTABLE_CHAR
-
-    return out_string
+    return unidecode(in_string)
 
 
 
 
 def display(line1, line2):
-    line1 = strip_UNPRINTABLE_CHARacters(line1)
-    line2 = strip_UNPRINTABLE_CHARacters(line2)
+
+    line1 = strip_unprintable_characters(line1)
+    line2 = strip_unprintable_characters(line2)
 
     line1 = line1[0:LINEWIDTH]
     line2 = line2[0:LINEWIDTH]
 
- 
     line1 = line1.ljust(LINEWIDTH, " ")
     line2 = line2.ljust(LINEWIDTH, " ")
-    
+ 
     if LCD:
         #TODO screen code
-        noop
+        pass
         
     if SCREEN:
+        line1 = line1.encode('utf-8')
+        line2 = line2.encode('utf-8')
+
         main_display.addstr(0,0,line1)
         main_display.addstr(1,0,line2)
+
         main_display.refresh()
 
 
@@ -920,7 +920,9 @@ def debug(msg, value=""):
         text = msg
 
         if value != "":
-            text = text + ": %s" % value
+            text = text + ": " + str(value)
+
+        text = text.encode('utf-8')
 
         if debug_display != None:
             max_yx = debug_display.getmaxyx()        
@@ -1055,7 +1057,7 @@ class Scroller:
         self.centre_text = centre_text
         self.right_text = right_text
         self.line_size = line_size
-        self.i = 0
+        self.i = 0                  #scrolling index
         self.centre_space = self.line_size - len(self.left_text) - len(self.right_text)
 
     def scroll(self):
@@ -1317,8 +1319,11 @@ def play_and_display(launch_track):
         else:
             status = "#"
             
+
+        time_str = format_time(current_position)
+
+        line1 = line1[0:LINEWIDTH-6].ljust(LINEWIDTH-6, " ") + " " + time_str
         line2 = line2[0:LINEWIDTH-2].ljust(LINEWIDTH-2, " ") + " " + status
-        line1 = line1[0:LINEWIDTH-6].ljust(LINEWIDTH-6, " ") + " " + format_time(current_position)
         
         display (line1, line2)
 
