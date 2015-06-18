@@ -206,8 +206,8 @@ def parse_segment_html(html, duration):
         else:
             loc = ""
             seconds = -1
-        artist = m.group(3)
-        track = m.group(4)
+        artist = str(m.group(3))
+        track = str(m.group(4))  # Need to ensure string type.
         contributors = str(m.group(5))
         etc = str(m.group(6))
 

@@ -410,9 +410,9 @@ class EpisodeDatabase:
                     #               'artist': self.trackartist(i,j) }
                     updates.append(update)
                     try:
-                        print "  (" + str(j) + ") " + str(self.favourite(i,j)) + " " + format_time(self.start(i,j)) + self.starttype(i,j) + "-" + format_time(self.get_track_end(i,j)) + self.endtype(i,j) + " " + self.tracktitle(i,j) + " - " + self.trackartist(i,j)
+                        print "  (" + str(j) + ") " + str(self.favourite(i,j)) + " " + self.format_time(self.start(i,j)) + self.starttype(i,j) + "-" + self.format_time(self.get_track_end(i,j)) + self.endtype(i,j) + " " + self.tracktitle(i,j) + " - " + self.trackartist(i,j)
                     except:
-                        print "  (" + str(j) + ") " + str(self.favourite(i,j)) + " " + format_time(self.start(i,j)) + "-" + format_time(self.get_track_end(i,j)) 
+                        print "  (" + str(j) + ") " + str(self.favourite(i,j)) + " " + self.format_time(self.start(i,j)) + "-" + self.format_time(self.get_track_end(i,j)) 
 	    if len(updates) > 0:
                 upd[pid] =  updates 
 
@@ -499,7 +499,7 @@ class EpisodeDatabase:
         oldtime = self.start(current_episode, adjust_track)
         if newtime > 0: 
             self.setstart(current_episode, adjust_track, newtime)
-            return "    Start time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db."
+            return "    Start time adjusted by "+str(time_diff)+"s, from "+self.format_time(oldtime) + " to " + self.format_time(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db."
         else:
             return ""
 
@@ -524,6 +524,6 @@ class EpisodeDatabase:
                 infostr = "*"
             if newtime > 0: 
                 self.setend(current_episode, adjust_track, newtime)
-                return "    End time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track)+". Saved to db." 
+                return "    End time adjusted by "+str(time_diff)+"s, from "+self.format_time(oldtime) + " to " + self.format_time(newtime) + ", for track "+str(adjust_track)+". Saved to db." 
             else:
                 return ""
