@@ -29,6 +29,9 @@ EPISODE_FILE_PATTERN = "*.xml"
 SEGMENT_FILE_PATTERN = "*.html"
 NAMESPACE = "{http://linuxcentre.net/xmlstuff/get_iplayer}"
 
+# If True, the audio files are assumed to be nex to XML files, irrespective of what the XML files says about location. If False, the audio file location from the XML file is used.
+COLOCATE_XML_AUDIO = True
+
 def getboolean(mystring):
   return mystring == "True"
 
@@ -55,6 +58,8 @@ if os.path.isfile(configfile):
             JB_DATABASE_TRACKS = os.path.join(JB_DATABASE, "tracks" )
         if 'episode_directory_list' in confitems:
             EPISODE_DIRECTORY_LIST = confitems['episode_directory_list']
+        if 'colocate_xml_audio' in confitems:
+            COLOCATE_XML_AUDIO = confitems['colocate_xml_audio']
 
 EPISODE_FILE_PATTERN = "*.xml"
 NAMESPACE = "{http://linuxcentre.net/xmlstuff/get_iplayer}"
@@ -294,11 +299,15 @@ def get_episodes_metadata():
                     #If the meta data files are moved then they contain the wrong paths.
                     #This code assumes the metadata files are in the same directory as 
                     #the audio files and ignores the path in the metadata file.
-                    file_base = os.path.basename(filename)
-                    if DEBUG:
-                        print "file_base: " + file_base
-                    filename = os.path.join(metaDataDir, file_base)
-                    filedir = metaDataDir
+                    # if DEBUG:
+                    #     print "file_base: " + file_base
+                    #     print "filename: " + filename
+                    #     print "filedir: " + filedir
+                    #     print "fileprefix: " + fileprefix
+                    if COLOCATE_XML_AUDIO:
+                        file_base = os.path.basename(filename)
+                        filename = os.path.join(DATA_DIRECTORY, metaDataDir, file_base)
+                        filedir = os.path.join(DATA_DIRECTORY, metaDataDir)
 
                     if (os.path.isdir(filedir)  and os.path.isfile(filename)):
                         episodes.append({'filename': filename, 'pid':pid, 'episode': episode,
