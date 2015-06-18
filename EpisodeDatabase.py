@@ -476,3 +476,54 @@ class EpisodeDatabase:
         if self.lasttrack(current_episode, current_track):        
             return self.duration(current_episode)
         return self.start(current_episode, current_track+1)
+
+# Should remove track end if track start is set to earlier than track end.
+# Shoudl allow setting end track if near start of next track.
+
+    def adjust_track_start(self,current_episode, current_track, current_time):
+        newtime = current_time 
+        if current_track == - 1:
+            adjust_track = current_track + 1
+        else: 
+            if current_track == self.ntracks(current_episode) - 1:
+                adjust_track = current_track
+            else:
+                # Work out which track boundary we are near:
+                currtr_diff = abs( newtime - self.start(current_episode, current_track))
+                nexttr_diff = abs( newtime - self.start(current_episode, current_track+1))
+                if (currtr_diff < nexttr_diff):
+                    adjust_track = current_track
+                else:
+                    adjust_track = current_track + 1
+        time_diff = newtime - self.start(current_episode, adjust_track)
+        oldtime = self.start(current_episode, adjust_track)
+        if newtime > 0: 
+            self.setstart(current_episode, adjust_track, newtime)
+            return "    Start time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db."
+        else:
+            return ""
+
+    def adjust_track_end(self,current_episode, current_track, current_time):
+        newtime = current_time 
+        if current_track > -1 and current_track < self.ntracks(current_episode):
+            if current_track == self.ntracks(current_episode) - 1:
+                adjust_track = current_track
+            else:
+                if current_track == - 1:
+                    adjust_track = current_track + 1
+                else:
+                    # If we are just into the next track, still adjust the previous track...
+                    if newtime + 5 < self.start(current_episode, current_track+1):
+                        adjust_track = current_track
+                    else:
+                        adjust_track = current_track + 1
+            time_diff = newtime - self.endseconds(current_episode, adjust_track)
+            oldtime_raw = self.endseconds(current_episode, adjust_track)
+            oldtime = self.get_track_end(current_episode, adjust_track)
+            if oldtime_raw == oldtime:
+                infostr = "*"
+            if newtime > 0: 
+                self.setend(current_episode, adjust_track, newtime)
+                return "    End time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track)+". Saved to db." 
+            else:
+                return ""

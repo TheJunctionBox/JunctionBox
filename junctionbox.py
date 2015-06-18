@@ -52,31 +52,6 @@ NAMESPACE = "{http://linuxcentre.net/xmlstuff/get_iplayer}"
 TICKER = ['-','\\','|','/']
 
 
-if BUTTONS or LED:
-	import RPi.GPIO as GPIO
-
-
-if BUTTONS or LED or LCD:
-	GPIO.setmode(GPIO.BCM)
-	GPIO.setwarnings(False)
-
-if BUTTONS:
-	GPIO.setup(4, GPIO.IN, pull_up_down = GPIO.PUD_UP)	#prev episode
-	GPIO.setup(5, GPIO.IN, pull_up_down = GPIO.PUD_UP)	#prev track
-	GPIO.setup(6, GPIO.IN, pull_up_down = GPIO.PUD_UP)	#play
-	GPIO.setup(7, GPIO.IN, pull_up_down = GPIO.PUD_UP)	#next track
-	GPIO.setup(8, GPIO.IN, pull_up_down = GPIO.PUD_UP)	#next episode
-	GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_UP)	#favourite
-
-if LED:
-	RED_PIN = 17
-	GREEN_PIN = 27
-	BLUE_PIN = 22
-
-	GPIO.setup(RED_PIN, GPIO.OUT)       #red
-	GPIO.setup(GREEN_PIN, GPIO.OUT)     #green
-	GPIO.setup(BLUE_PIN, GPIO.OUT)      #blue
-
 STOPPED = 0
 PLAYING = 1
 PAUSED = 2
@@ -180,6 +155,41 @@ def load_config():
         debug("FAV_DIRECTORY: "+FAV_DIRECTORY)   
 
 
+def configure_LED_LCD_and_buttons():
+
+    if BUTTONS or LED:
+        import RPi.GPIO as GPIO
+
+    if BUTTONS or LED or LCD:
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
+
+    if BUTTONS:
+        GPIO.setup(4, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #prev episode
+        GPIO.setup(5, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #prev track
+        GPIO.setup(6, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #play
+        GPIO.setup(7, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #next track
+        GPIO.setup(8, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #next episode
+        GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_UP)       #favourite
+
+    if LED:
+        RED_PIN = 17
+        GREEN_PIN = 27
+        BLUE_PIN = 22
+
+        GPIO.setup(RED_PIN, GPIO.OUT)       #red
+        GPIO.setup(GREEN_PIN, GPIO.OUT)     #green
+        GPIO.setup(BLUE_PIN, GPIO.OUT)      #blue
+
+    if BUTTONS:
+        GPIO.add_event_detect(4, GPIO.FALLING, callback=prev_episode, bouncetime=300)
+        GPIO.add_event_detect(5, GPIO.FALLING, callback=prev_track, bouncetime=300)
+        GPIO.add_event_detect(6, GPIO.FALLING, callback=play_pause, bouncetime=300)
+        GPIO.add_event_detect(7, GPIO.FALLING, callback=next_track, bouncetime=300)
+        GPIO.add_event_detect(8, GPIO.FALLING, callback=next_episode, bouncetime=300)
+        GPIO.add_event_detect(12, GPIO.FALLING, callback=mark_favourite, bouncetime=300)
+
+
 class Event:
     def __init__(self, name, handlers = []):
         self.name = name
@@ -225,55 +235,6 @@ def prev_track(channel=0):
 def skip_back(SKIP_TIME):
     if mp.time_pos > SKIP_TIME:
         mp.time_pos = mp.time_pos - SKIP_TIME
-
-
-def adjust_track_start():
-    global current_track
-    current_time = mp.time_pos
-    newtime = current_time 
-    if current_track == - 1:
-        adjust_track = current_track + 1
-    else: 
-        if current_track == ep.ntracks(current_episode) - 1:
-            adjust_track = current_track
-        else:
-            # Work out which track boundary we are near:
-            currtr_diff = abs( newtime - ep.start(current_episode, current_track))
-            nexttr_diff = abs( newtime - ep.start(current_episode, current_track+1))
-            if (currtr_diff < nexttr_diff):
-                adjust_track = current_track
-            else:
-                adjust_track = current_track + 1
-    time_diff = newtime - ep.start(current_episode, adjust_track)
-    oldtime = ep.start(current_episode, adjust_track)
-    if newtime > 0: 
-        ep.setstart(current_episode, adjust_track, newtime)
-	debug("    Start time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track+1)+", when playing track "+str(current_track+1)+". Saved to db." )
-
-def adjust_track_end():
-    global current_track
-    current_time = mp.time_pos
-    newtime = current_time 
-    if current_track > -1 and current_track < ep.ntracks(current_episode):
-        if current_track == ep.ntracks(current_episode) - 1:
-            adjust_track = current_track
-        else:
-            if current_track == - 1:
-                adjust_track = current_track + 1
-            else:
-                # If we are just into the next track, still adjust the previous track...
-                if newtime + 5 < ep.start(current_episode, current_track+1):
-                    adjust_track = current_track
-                else:
-                    adjust_track = current_track + 1
-        time_diff = newtime - ep.endseconds(current_episode, adjust_track)
-        oldtime_raw = ep.endseconds(current_episode, adjust_track)
-        oldtime = ep.get_track_end(current_episode, adjust_track)
-	if oldtime_raw == oldtime:
-            infostr = "*"
-        if newtime > 0: 
-            ep.setend(current_episode, adjust_track, newtime)
-	    debug("    End time adjusted by "+str(time_diff)+"s, from "+format_time(oldtime) + " to " + format_time(newtime) + ", for track "+str(adjust_track)+". Saved to db." )
 
 
 def play_pause(channel=0):
@@ -337,7 +298,7 @@ def get_fav_log_string(episode,track):
     data = ep.tracktitle(episode,track) + "\n" + ep.trackartist(episode,track) + "\n" + \
            cont_etc + start_end_time + "\n" + \
            ep.title(episode) + "  " + ep.date(episode) + "\n" + \
-	   "http://www.bbc.co.uk/programmes/" + ep.pid(episode) + "\n\n"
+           "http://www.bbc.co.uk/programmes/" + ep.pid(episode) + "\n\n"
     return data
 
 
@@ -357,15 +318,6 @@ def mark_favourite(channel=0):
             favourited_log_string = logdata
 
     show_favourite(ep.favourite(current_episode,current_track))
-
-
-if BUTTONS:
-	GPIO.add_event_detect(4, GPIO.FALLING, callback=prev_episode, bouncetime=300)
-	GPIO.add_event_detect(5, GPIO.FALLING, callback=prev_track, bouncetime=300)
-	GPIO.add_event_detect(6, GPIO.FALLING, callback=play_pause, bouncetime=300)
-	GPIO.add_event_detect(7, GPIO.FALLING, callback=next_track, bouncetime=300)
-	GPIO.add_event_detect(8, GPIO.FALLING, callback=next_episode, bouncetime=300)
-	GPIO.add_event_detect(12, GPIO.FALLING, callback=mark_favourite, bouncetime=300)
 
 
 def update_position():
@@ -402,8 +354,6 @@ def update_position():
 def strip_unprintable_characters(in_string):
 
     return unidecode(in_string)
-
-
 
 
 def display(line1, line2):
@@ -523,15 +473,6 @@ def check_and_fix_filename_sync_bug():
         else:
             pass
             # debug("Current track while seeking: " + str(current_track))
-        # if fix_filename_counter > 3:
-        #     debug("filename_sync_bug. hit="+str(fix_filename_counter))
-        #     debug("-->"+mpfile)
-        #     debug("-->"+episode_file)
-        # fix_filename_counter += 1
-        # if fix_filename_counter > 5:
-        #     debug("Wrong file playing. Loading episode: "+str(current_episode))
-        #     play_episode(current_episode)
-        #     fix_filename_counter = 0
     else:
         fix_filename_counter = 0
 
@@ -563,7 +504,7 @@ def led(red, green, blue):
 
     elif SCREEN:    #simulate LED on the screen
 
-        colour = red + green * 2 + blue	* 4
+        colour = red + green * 2 + blue * 4
         if colour == 0:
             char = " "
         else:
@@ -686,15 +627,17 @@ def handle_keypress(c):
     elif c == ord('m'):
         change_mode()
     elif c == ord('/'):
-        adjust_track_start()
+        msg = ep.adjust_track_start(current_episode, current_track, mp.time_pos)
+        debug(msg)
     elif c == ord('\\'):
-        adjust_track_end()
+        msg = ep.adjust_track_end(current_episode, current_track, mp.time_pos)
+        debug(msg)
     elif c == ord('V'):
         mute_unmute()
     elif c == ord('?'):
         debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; V: mute; q: quit; ?: this help; C: play/pause bug fix\n<,>: back/forward some secs, /: adjust track startm \\: adjust track end, m: play mode")
     elif c == ord('q'):
-        quit()
+        clean_up_and_exit()
 
 #Write a human readable log file of tracks that have been favourited.
 #Note: a track is deliberately not removed from the log file if later un-favourited. 
@@ -705,60 +648,6 @@ def log_favourited(data):
     except:
         debug("Could not write favourite data to logfile!")
     f.close
-
-    
-
-def main_loop(screen):
-    global current_episode, stdscr, main_display, debug_display, favourited_log_string, show_length
-    # Surely needs: global current_track
-    global current_track
-    global ep, JB_DATABASE
-    global mp
-
-    mp = mpylayer.MPlayerControl()
-
-    stdscr = screen
-    main_display = curses.newwin(DISPLAYHEIGHT + 1,LINEWIDTH,1,0)    
-    debug_display = curses.newwin(0, 0, DISPLAYHEIGHT + 2, 0)
-    debug_display.scrollok(1)
-
-    if HIDE_CURSOR:
-        try:
-            curses.curs_set(0)
-        except:
-            debug("Cannot hide cursor.")
-    
-    curses.halfdelay(4)
-    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
-    curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
-    curses.init_pair(4, curses.COLOR_BLUE, curses.COLOR_BLACK)
-    curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
-    curses.init_pair(6, curses.COLOR_CYAN, curses.COLOR_BLACK)
-    curses.init_pair(5, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-    curses.init_pair(7, curses.COLOR_WHITE, curses.COLOR_BLACK)
-    
-    display("Junction", "Box") 
-    led(0,0,0)
-
-    ep = EpisodeDatabase.EpisodeDatabase(JB_DATABASE)
-    
-    if ep.nepisodes() == 0:
-        #TODO when episode downloading is moved to junctionbox then it should
-        #wait here while downloading instead of exiting. 
-        #B: Though in an ideal world it would immediately play the one it's downloading.
-        sys.exit("Can't find any episodes to play in "+ JB_DATABASE)
-
-    #current_episode = ep.nepisodes() - 1
-    current_episode = ep.nepisodes() - 1
-    launch_track = -1
-    if (len(sys.argv) > 1):
-        current_episode = int(sys.argv[1])
-    if (len(sys.argv) > 2):
-        launch_track = int(sys.argv[2])
-    while current_episode > -1 and current_episode < ep.nepisodes():
-        play_and_display(launch_track)
-        current_episode =  current_episode + PLAY_DIRECTION
-    quit()
 
 
 def play_and_display(launch_track):
@@ -795,7 +684,7 @@ def play_and_display(launch_track):
         if (last_track != current_track) or (last_episode != current_episode):
             last_track = current_track
             #B: Inserted this, because of issue below, see next try/except block:
-	    if last_episode != current_episode:
+            if last_episode != current_episode:
                 last_track = -2
                 current_track = -1
                 debug("\nNew episode: "+str(current_episode) + ", pid=" + ep.pid(current_episode)+", date="+ep.date(current_episode))
@@ -866,7 +755,59 @@ def play_and_display(launch_track):
     # quit()
 
 
-def quit():
+def main_loop(screen):
+    global current_episode, stdscr, main_display, debug_display, favourited_log_string, show_length
+    # Surely needs: global current_track
+    global current_track
+    global ep, JB_DATABASE
+    global mp
+
+    mp = mpylayer.MPlayerControl()
+
+    stdscr = screen
+    main_display = curses.newwin(DISPLAYHEIGHT + 1,LINEWIDTH,1,0)    
+    debug_display = curses.newwin(0, 0, DISPLAYHEIGHT + 2, 0)
+    debug_display.scrollok(1)
+
+    if HIDE_CURSOR:
+        try:
+            curses.curs_set(0)
+        except:
+            debug("Cannot hide cursor.")
+    
+    curses.halfdelay(4)
+    curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(4, curses.COLOR_BLUE, curses.COLOR_BLACK)
+    curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+    curses.init_pair(6, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    curses.init_pair(5, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
+    curses.init_pair(7, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    
+    display("Junction", "Box") 
+    led(0,0,0)
+
+    ep = EpisodeDatabase.EpisodeDatabase(JB_DATABASE)
+    
+    if ep.nepisodes() == 0:
+        #TODO when episode downloading is moved to junctionbox then it should
+        #wait here while downloading instead of exiting. 
+        #B: Though in an ideal world it would immediately play the one it's downloading.
+        sys.exit("Can't find any episodes to play in "+ JB_DATABASE)
+
+    #current_episode = ep.nepisodes() - 1
+    current_episode = ep.nepisodes() - 1
+    launch_track = -1
+    if (len(sys.argv) > 1):
+        current_episode = int(sys.argv[1])
+    if (len(sys.argv) > 2):
+        launch_track = int(sys.argv[2])
+    while current_episode > -1 and current_episode < ep.nepisodes():
+        play_and_display(launch_track)
+        current_episode =  current_episode + PLAY_DIRECTION
+
+
+def clean_up_and_exit():
     global favourited_log_string
     global current_episode, current_track, current_position
 
@@ -881,7 +822,7 @@ def quit():
         favourited_log_string = None
 
     if BUTTONS or LED or LCD:
-	GPIO.cleanup()
+        GPIO.cleanup()
 
     sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+ep.date(current_episode)+"\n"+
              "Continue listening like this: "+ sys.argv[0] + " " + str(current_episode)+" "+str(current_track))
@@ -897,5 +838,7 @@ if __name__ == '__main__':
         ep = Episodes_Database(JB_DATABASE)
         ep.apply_db_patch(sys.argv[2])
         sys.exit("Exitting normally after db operation.")
+    configure_LED_LCD_and_buttons()
     curses.wrapper(main_loop)
+    clean_up_and_exit()
 
