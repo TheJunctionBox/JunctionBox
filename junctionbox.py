@@ -704,12 +704,12 @@ def play_and_display(launch_track):
                     debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+
                           str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
                 try:
-                    debug("- Playing track " + str(current_track) + ", in ep=" + str(current_episode)  +  " (" + track_name  + ") "
+                   debug("- Playing track " + str(track_no) + ", in ep=" + str(current_episode)  +  " (" + track_name  + ") "
                           + format_time(ep.start(current_episode,current_track)) + ep.starttype(current_episode,current_track)  
                           + "-" + format_time(ep.get_track_end(current_episode,current_track))+ ep.endtype(current_episode,current_track) )
                           #+ "; " + ep.time_info(current_episode,current_track))
                 except:
-                   debug("- Playing track " + str(track_no))
+                   debug("- Playing track " + str(track_no) + ", in ep=" + str(current_episode)  +  " (" + track_name  + ") "  )
 
                 show_favourite(ep.favourite(current_episode,current_track))
 
@@ -832,11 +832,11 @@ def clean_up_and_exit():
 if __name__ == '__main__':    
     load_config()
     if len(sys.argv) > 1 and sys.argv[1] == "dumppatch":
-        ep = Episodes_Database(JB_DATABASE)
+        ep = EpisodeDatabase.EpisodeDatabase(JB_DATABASE)
         ep.dump_db_patch(sys.argv[2])
         sys.exit("Exitting normally after db operation.")
     if len(sys.argv) > 1 and sys.argv[1] == "applypatch":
-        ep = Episodes_Database(JB_DATABASE)
+        ep = EpisodeDatabase.EpisodeDatabase(JB_DATABASE)
         ep.apply_db_patch(sys.argv[2])
         sys.exit("Exitting normally after db operation.")
     configure_LED_LCD_and_buttons()

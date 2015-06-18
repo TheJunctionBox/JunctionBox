@@ -282,7 +282,7 @@ class EpisodeDatabase:
             return None
 
     def endtype(self, current_episode, current_track):
-        if ep.endseconds(current_episode, current_track) > 0:
+        if self.endseconds(current_episode, current_track) > 0:
             return "*"
         else:
             return ""
