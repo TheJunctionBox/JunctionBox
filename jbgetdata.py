@@ -11,6 +11,7 @@ from os.path import expanduser
 import os.path
 import sys
 import json
+#from BeautifulSoup import BeautifulStoneSoup
 
 DEBUG = True
 HTML_FILE_LONG_NAME = False
@@ -27,6 +28,9 @@ JB_DATABASE_TRACKS = os.path.join(JB_DATABASE, "tracks" )
 EPISODE_FILE_PATTERN = "*.xml"
 SEGMENT_FILE_PATTERN = "*.html"
 NAMESPACE = "{http://linuxcentre.net/xmlstuff/get_iplayer}"
+
+# If True, the audio files are assumed to be nex to XML files, irrespective of what the XML files says about location. If False, the audio file location from the XML file is used.
+COLOCATE_XML_AUDIO = True
 
 def getboolean(mystring):
   return mystring == "True"
@@ -54,6 +58,8 @@ if os.path.isfile(configfile):
             JB_DATABASE_TRACKS = os.path.join(JB_DATABASE, "tracks" )
         if 'episode_directory_list' in confitems:
             EPISODE_DIRECTORY_LIST = confitems['episode_directory_list']
+        if 'colocate_xml_audio' in confitems:
+            COLOCATE_XML_AUDIO = confitems['colocate_xml_audio']
 
 EPISODE_FILE_PATTERN = "*.xml"
 NAMESPACE = "{http://linuxcentre.net/xmlstuff/get_iplayer}"
@@ -70,7 +76,7 @@ def get_segment_files(episodes):
         # segment_data_file is kept in DB, segment_file is kept alongside episodes
         segment_p_file = os.path.join(JB_DATABASE_TRACKS, pid + ".p")
         segment_data_file = os.path.join(JB_DATABASE_TRACKS, pid + ".json")
-#        segment_user_file = os.path.join(JB_DATABASE_USER, pid + ".p")
+        # segment_user_file = os.path.join(JB_DATABASE_USER, pid + ".p")
         if HTML_FILE_LONG_NAME:
             segment_file = os.path.join(episode['dir'], episode['fileprefix'] + '.segments.html')
             segment_playlist_file = os.path.join(episode['dir'], episode['fileprefix'] + '.playlist.json')
@@ -191,17 +197,17 @@ def parse_segment_html(html, duration):
 
     data = []
 
-    trackno = 0
+    trackno = -1
     for m in p.finditer(html):    
-        trackno =         trackno + 1
+        trackno = trackno + 1
         if m.group(1) != None:
             loc = str(m.group(1)) + ":" + str(m.group(2))
             seconds = int(m.group(1)) * 3600 + int(m.group(2)) * 60
         else:
             loc = ""
             seconds = -1
-        artist = m.group(3)
-        track = m.group(4)
+        artist = str(m.group(3))
+        track = str(m.group(4))  # Need to ensure string type.
         contributors = str(m.group(5))
         etc = str(m.group(6))
 
@@ -210,6 +216,16 @@ def parse_segment_html(html, duration):
             contributors = ""
         contributors = re.sub(r'<.*?>', '', contributors)
         etc = re.sub(r'<.*?>', '', etc)
+
+        # try:
+        #     artist = unescape(artist) 
+        #     track = unescape(track) 
+        #     contributors = unescape(contributors) 
+        #     etc = unescape(etc) 
+        # except:
+        #     print "art="+ artist
+        #     print "art="+ track
+        #     sys.exit()
         
         # data stores: (1) The extracted information, (2) Empty fields for inf appended from playlist.json, (3) user data
         data.append({'number': trackno, 'loc':loc, 'seconds':seconds, 'artist':artist, 'track':track, 'contributors': contributors, 'etc': etc, 'sectype': '',
@@ -243,6 +259,9 @@ def parse_segment_html(html, duration):
         for i in range(len(data)):
             data[i]['seconds'] = pos[i]
     return data
+
+# def unescape(s):
+#     return BeautifulStoneSoup(s, convertEntities=BeautifulStoneSoup.HTML_ENTITIES)
 
 def get_episodes_audio():
     # call get_iplayer
@@ -280,11 +299,15 @@ def get_episodes_metadata():
                     #If the meta data files are moved then they contain the wrong paths.
                     #This code assumes the metadata files are in the same directory as 
                     #the audio files and ignores the path in the metadata file.
-                    file_base = os.path.basename(filename)
-                    if DEBUG:
-                        print "file_base: " + file_base
-                    filename = os.path.join(metaDataDir, file_base)
-                    filedir = metaDataDir
+                    # if DEBUG:
+                    #     print "file_base: " + file_base
+                    #     print "filename: " + filename
+                    #     print "filedir: " + filedir
+                    #     print "fileprefix: " + fileprefix
+                    if COLOCATE_XML_AUDIO:
+                        file_base = os.path.basename(filename)
+                        filename = os.path.join(DATA_DIRECTORY, metaDataDir, file_base)
+                        filedir = os.path.join(DATA_DIRECTORY, metaDataDir)
 
                     if (os.path.isdir(filedir)  and os.path.isfile(filename)):
                         episodes.append({'filename': filename, 'pid':pid, 'episode': episode,
