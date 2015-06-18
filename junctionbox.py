@@ -804,6 +804,7 @@ def main_loop(screen):
         launch_track = int(sys.argv[2])
     while current_episode > -1 and current_episode < ep.nepisodes():
         play_and_display(launch_track)
+        launch_track = -1
         current_episode =  current_episode + PLAY_DIRECTION
 
 
