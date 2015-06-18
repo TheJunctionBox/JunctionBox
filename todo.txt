@@ -2,6 +2,8 @@ TODO:
 
 (Done items are marked with a "/" at the begining of the line)
 
+Bug: Fix flashing of previous track in display when navigating
+
 Bug: fix "&amp;" etc in the display
     (see Tuesday 05-05-2015, track 15)
 
@@ -11,8 +13,6 @@ Bug: fix "&amp;" etc in the display
         non-ascii chars are being replaced by multiple "#"s (unicode issue?)
         (Can the LCD display unicode chars? Maybe we don't need to strip them if we can get curses to work too)
         (Needs further improvement - non-ascii display ok, but the string trimming doens't work well.)
-
-Bug: Fix flashing of previous track in display when navigating
 
 Get LCD working
 
