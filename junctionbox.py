@@ -201,6 +201,7 @@ class Event:
     def get_handlers(self):
         return self.handlers
 
+
 class Event_Queue: 
     def __init__(self):
         self.event_queue = []
@@ -211,82 +212,80 @@ class Event_Queue:
     def pop(self):
         self.event_queue
 
-def prev_episode(channel=0):
+
+
+def episode_nav(ep_offset):
     global current_episode
 
-    display("|<", str(current_episode + 1) + " / " + str(ep.nepisodes()))
-    if not(ep.firstepisode(current_episode)):
-        current_episode -= 1
-        play_episode(current_episode)
+    if (ep_offset > 0):
+        disp_str = ">|"
+    else:
+        disp_str = "|<"
 
-def prev_track(channel=0):
+    target_episode = current_episode + ep_offset
+
+    try:
+        if target_episode > -1 and target_episode < ep.nepisodes():
+            display(disp_str, str(target_episode) + " / " + str(ep.nepisodes()))
+            current_episode = target_episode
+            play_episode(current_episode)
+        else:
+            debug("Cannot change episode: "+str(ep_offset))
+    except:
+        debug("ERROR: Cannot change episode")
+
+
+def track_nav(track_offset):
     global current_track
 
-    display("<<", str(current_track + 1) + " / " + str(ep.ntracks(current_episode)))
-
-    if not(ep.firsttrack(current_episode,current_track)):
-        current_track -= 1
-        mp.time_pos = ep.start(current_episode, current_track) 
+    if (track_offset > 0):
+        disp_str = ">>"
     else:
-        current_track = 0
-        mp.time_pos = 0
+        if (track_offset < 0):
+            disp_str = "<<"
+        else:
+            disp_str = "><"
+
+    target_track = current_track + track_offset
+
+    try:
+        if ep.validtrack(current_episode, target_track):
+            display(disp_str, str(current_track + track_offset) + " / " + str(ep.ntracks(current_episode)))
+            current_track = target_track
+            mp.time_pos = ep.start(current_episode, current_track) 
+        else:
+            current_track = 0
+            mp.time_pos = 0
+    except:
+        debug("Cannot change track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
 
 
-def skip_back(SKIP_TIME):
-    if mp.time_pos > SKIP_TIME:
-        mp.time_pos = mp.time_pos - SKIP_TIME
+def skip_time(SKIP_TIME):
+    global current_episode
+    target_time = mp.time_pos + SKIP_TIME
+    if target_time > 0 and target_time < get_show_length(current_episode) - 2:
+        mp.time_pos = target_time
+    else:
+        debug(str(mp.time_pos) + " " + str(SKIP_TIME) + " " + str(get_show_length(current_episode)))
 
+
+def prev_episode(channel=0):
+    episode_nav(-1)
+
+def prev_track(channel=0):
+    track_nav(-1)
 
 def play_pause(channel=0):
     play_pause()
 
-
-def skip_forward(SKIP_TIME):
-    # What happens when we go over the end?
-    global current_episode
-    get_show_length(current_episode)
-    if mp.time_pos + SKIP_TIME < get_show_length(current_episode):
-        mp.time_pos = mp.time_pos + SKIP_TIME
-
-
 def next_track(channel=0):
-    global current_track
-
-    if not(ep.lasttrack(current_episode, current_track)):
-        current_track += 1
-
-    #debug(">>" + str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
-    display(">>", str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
-
-    try:
-        mp.time_pos = ep.start(current_episode, current_track) 
-    except:
-        debug("Cannot advance track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
-
-def this_track(channel=0):
-    global current_track
-
-    if not(ep.validtrack(current_episode, current_track)):
-        current_track = -1
-    else:       
-        display("><", str(current_track + 1) + " / " +  str(ep.ntracks(current_episode)))
-        try:
-            mp.time_pos = ep.start(current_episode, current_track) 
-        except:
-            debug("Cannot seek to track. len="+str(ep.ntracks(current_episode))+", current_track="+str(current_track)+", pid="+ep.pid(current_episode)+", date="+ep.date(current_episode))
-    
+    track_nav(+1)
 
 def next_episode(channel=0):
-    global current_episode
-    
-    display(">|", str(current_episode + 1) + " / " + str(ep.nepisodes()))
-    if not(ep.lastepisode(current_episode)):
-        current_episode += 1
-        play_episode(current_episode)
+    episode_nav(+1)
 
 
 def get_fav_log_string(episode,track):
-
     start_end_time = format_time(ep.start(episode,track))
     if (ep.endseconds(episode,track) > 0):
         start_end_time = start_end_time + "-" + format_time(ep.get_track_end(episode,track))
@@ -469,7 +468,7 @@ def check_and_fix_filename_sync_bug():
             if current_track > -1:
                 debug("Seeking to track: " + str(current_track))
                 time.sleep(1.5)
-                this_track()
+                track_nav(0)
         else:
             pass
             # debug("Current track while seeking: " + str(current_track))
@@ -537,12 +536,15 @@ class Scroller:
 
         return self.left_text + self.centre + self.right_text
 
+
 def format_time(seconds):
+    if (seconds == -1):
+        return "--:--"
     seconds = int(seconds)
     secs = seconds % 60
     mins = (seconds - secs) / 60
-
     return str(mins).rjust(2, "0") + ":" + str(secs).rjust(2, "0")
+
 
 def show_favourite(favourite):
     if favourite:
@@ -569,7 +571,7 @@ def change_mode():
         play_mode = PLAY_MODE_DEFAULT
 
 def seek_next_fav():
-    global current_track
+    global current_track, current_position
     if not(ep.favourite(current_episode,current_track))  or current_position > ep.get_track_end(current_episode,current_track):
         if not(ep.lasttrack(current_episode,current_track)):
             i = current_track+1
@@ -586,11 +588,11 @@ def seek_next_fav():
                 else:
                     debug("Favourite mode: Skip track to "+ str(i) + " (last track), in "+str(current_episode))
                     current_track = i
-                    this_track()
+                    track_nav(0)
             else:
                 debug("Favourite mode: Skip track to "+ str(i) + ", in "+str(current_episode))
                 current_track = i
-                this_track()
+                track_nav(0)
         else:
             debug("Favourite mode: go to prev/next episode")
             if PLAY_DIRECTION == -1:
@@ -606,9 +608,9 @@ def handle_keypress(c):
     elif c == ord('x'):
         prev_track()
     elif c == ord(','):
-        skip_back(SKIP_TIME_SHORT)
+        skip_time(-SKIP_TIME_SHORT)
     elif c == ord('<'):
-        skip_back(SKIP_TIME_MEDIUM)
+        skip_time(-SKIP_TIME_MEDIUM)
     elif c == ord('c'):
         play_pause(True)
     elif c == ord('C'):
@@ -619,9 +621,9 @@ def handle_keypress(c):
     elif c == ord('b'):        
         next_episode()
     elif c == ord('>'):        
-        skip_forward(SKIP_TIME_MEDIUM)
+        skip_time(SKIP_TIME_MEDIUM)
     elif c == ord('.'):
-        skip_forward(SKIP_TIME_SHORT)
+        skip_time(SKIP_TIME_SHORT)
     elif c == ord('n'):
         mark_favourite()
     elif c == ord('m'):
@@ -677,8 +679,8 @@ def play_and_display(launch_track):
         if launch_track > -1 and current_position > 0:
             current_track = launch_track
             launch_track = -1
-            this_track()
-        if play_mode == PLAY_MODE_FAV_ONLY:
+            track_nav(0)
+        if play_mode == PLAY_MODE_FAV_ONLY and current_position > 0:
             seek_next_fav()
             #debug("Last track "+str(last_track) + ", " + str(current_track))
         if (last_track != current_track) or (last_episode != current_episode):
@@ -687,6 +689,7 @@ def play_and_display(launch_track):
             if last_episode != current_episode:
                 last_track = -2
                 current_track = -1
+                current_position = -1
                 debug("\nNew episode: "+str(current_episode) + ", pid=" + ep.pid(current_episode)+", date="+ep.date(current_episode))
             last_episode = current_episode
             #episode = episodes[current_episode]
