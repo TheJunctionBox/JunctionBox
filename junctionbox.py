@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import curses
-import mpylayer
 import time
 import os
 #import glob
@@ -14,7 +13,10 @@ import os.path
 import sys
 import string
 import shutil
+
+import mpylayer
 from unidecode import unidecode
+
 import EpisodeDatabase
 
 #Default Options
@@ -31,7 +33,7 @@ JB_DATABASE = os.path.join(DATA_DIRECTORY, "JB_DATABASE" )
 FAVOURITED_LOG_FILE = "favourited.txt"
 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
 
-BUTTONS =  False         #set to True if buttons are present
+BUTTON =   False         #set to True if buttons are present
 LCD =      False         #set to True if there is an LCD screen present
 LED =      False         #set to True if there is an RGB LED present
 KEYBOARD = True          #set to True if keyboard is present
@@ -40,6 +42,8 @@ HIDE_CURSOR = True       # Cursor is hidden by default, but some curses libs don
 LINEWIDTH = 16           # Characters available on display (per line) 
 DISPLAYHEIGHT = 2        # Lines available on display
 LCD_EMULATION = True     # If true the screen (monitor) will emulate the LCD display
+keys = {}                # Keyboard keys used and their methods
+buttons = []             # Hardware buttons used and their methods
 
 #Navigation options (not in .junctionbox yet)
 SKIP_TIME_MEDIUM = 60
@@ -71,9 +75,12 @@ main_display = None
 debug_display = None
 favourited_log_string = None
 event_queue = []
-ep = None
-mp = None
 mplength = None
+freeze_debug_display = False
+
+ep = None                   #the episode database
+mp = None                   #the media player device
+lcd = None                  #the LCD device
 
 # For use of following var, see  check_and_fix_filename_sync_bug()
 fix_filename_counter = 0
@@ -82,7 +89,7 @@ def getboolean(mystring):
   return mystring == "True"
 
 def load_config():
-    global DEBUG, DEBUG_LOG, BUTTONS, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
+    global DEBUG, DEBUG_LOG, BUTTON, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
         DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, \
         DIR_AND_FAVOURITED_LOG_FILE, JB_DATABASE
 
@@ -93,21 +100,21 @@ def load_config():
         Config.read(configfile)
         if 'basic' in Config.sections():
             confitems = dict(Config.items('basic'))
-            if 'debug' in confitems:
+            if 'DEBUG' in confitems:
                 DEBUG = getboolean(confitems['debug'])
-            if 'debug_log' in confitems:
+            if 'DEBUG_LOG' in confitems:
                 DEBUG_LOG = getboolean(confitems['debug_log'])
-            if 'buttons' in confitems:
-                BUTTONS = getboolean(confitems['buttons'])
-            if 'lcd' in confitems:
+            if 'BUTTON' in confitems:
+                BUTTON = getboolean(confitems['buttons'])
+            if 'LCD' in confitems:
                 LCD = getboolean(confitems['lcd'])
-            if 'led' in confitems:
+            if 'LED' in confitems:
                 LED = getboolean(confitems['led'])
-            if 'keyboard' in confitems:
+            if 'KEYBOARD' in confitems:
                 KEYBOARD = getboolean(confitems['keyboard'])
-            if 'screen' in confitems:
+            if 'SCREEN' in confitems:
                 SCREEN = getboolean(confitems['screen'])
-            if 'hide_cursor' in confitems:
+            if 'HIDE_CURSOR' in confitems:
                 HIDE_CURSOR = getboolean(confitems['hide_cursor'])
             if 'linewidth' in confitems:
                 LINEWIDTH = int(confitems['linewidth'])
@@ -155,22 +162,55 @@ def load_config():
         debug("FAV_DIRECTORY: "+FAV_DIRECTORY)   
 
 
-def configure_LED_LCD_and_buttons():
+def configure_hardware():
+    global keys, buttons
 
-    if BUTTONS or LED:
+    if KEYBOARD:
+        #key definitions of the form:
+        #key:["description", function]
+        keys = {'z':["previous episode", prev_episode],
+                'x':["previous track", prev_track],
+                ',':["skip back", skip_back_short],
+                '<':["jump back", skip_back_long],
+                'c':["play/pause", toggle_pause],
+                'C':["resync pause status", fix_pause],
+                'v':["next track", next_track],
+                'b':["next episode", next_episode],
+                '>':["jump forward", skip_forward_long],
+                '.':["skip forward", skip_forward_short],
+                'n':["mark favourite", mark_favourite],
+                'm':["change mode", change_mode],
+                '/':["adjust track start", adjust_track_start],
+                '\\':["adjust track end", adjust_track_end],
+                'V':["mute", mute_unmute],
+                'q':["quit", quit],
+                'Q':["turn off", shutdown],
+                'd':["freeze debug display", toggle_debug_freeze],
+                '?':["help", help]}
+
+
+    if BUTTON or LED or LCD:
         import RPi.GPIO as GPIO
-
-    if BUTTONS or LED or LCD:
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
 
-    if BUTTONS:
-        GPIO.setup(4, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #prev episode
-        GPIO.setup(5, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #prev track
-        GPIO.setup(6, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #play
-        GPIO.setup(7, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #next track
-        GPIO.setup(8, GPIO.IN, pull_up_down = GPIO.PUD_UP)        #next episode
-        GPIO.setup(12, GPIO.IN, pull_up_down = GPIO.PUD_UP)       #favourite
+    if BUTTON:
+        #button definitions of the form:
+        #[GPIO_PIN, function]
+        buttons = [ [4, prev_episode],
+                    [5, prev_track],
+                    [6, toggle_pause],
+                    [7, next_track],
+                    [8, next_episode],
+                    [12, mark_favourite],
+                    [None, shutdown]
+                  ]
+
+    if LCD:
+        global lcd
+        import Adafruit_CharLCD
+        lcd = Adafruit_CharLCD.Adafruit_CharLCDPlate()
+
 
     if LED:
         RED_PIN = 17
@@ -181,13 +221,130 @@ def configure_LED_LCD_and_buttons():
         GPIO.setup(GREEN_PIN, GPIO.OUT)     #green
         GPIO.setup(BLUE_PIN, GPIO.OUT)      #blue
 
-    if BUTTONS:
-        GPIO.add_event_detect(4, GPIO.FALLING, callback=prev_episode, bouncetime=300)
-        GPIO.add_event_detect(5, GPIO.FALLING, callback=prev_track, bouncetime=300)
-        GPIO.add_event_detect(6, GPIO.FALLING, callback=play_pause, bouncetime=300)
-        GPIO.add_event_detect(7, GPIO.FALLING, callback=next_track, bouncetime=300)
-        GPIO.add_event_detect(8, GPIO.FALLING, callback=next_episode, bouncetime=300)
-        GPIO.add_event_detect(12, GPIO.FALLING, callback=mark_favourite, bouncetime=300)
+    if BUTTON:
+        for button in buttons():
+            GPIO.setup(button[0], GPIO.IN, pull_up_down = GPIO.PUD_UP)
+            GPIO.add_event_detect(button[0], GPIO.FALLING, 
+                                  callback=button[1], bouncetime=300)
+
+
+###################################################
+# Built in key functions                          #
+###################################################
+
+def prev_episode(channel=0):
+    episode_nav(-1)
+
+def prev_track(channel=0):
+    track_nav(-1)
+
+def skip_back_short():
+    skip_time(-SKIP_TIME_SHORT)
+
+def skip_back_long():
+        skip_time(-SKIP_TIME_MEDIUM)
+
+def play_pause(channel=0):
+    play_pause()
+
+def toggle_pause():
+    global player_status
+
+#    debug("Player status in:  "+str(player_status)+" (pl=1, pau=2)")
+    if player_status == PLAYING:
+        player_status = PAUSED
+    else:
+        player_status = PLAYING
+
+#    debug("Player status out: "+str(player_status))
+    mp.pause()
+# If play_pause is rapidly called twice, mp doesn't keep up, hence insert a delay.
+# This does cause a delay in the display too. A better way would be to check the time since this fn was last called.
+    time.sleep(0.2)
+
+
+def fix_pause():
+    mp.pause()
+    time.sleep(0.2)
+
+def next_track(channel=0):
+    track_nav(+1)
+
+def next_episode(channel=0):
+    episode_nav(+1)
+
+def skip_forward_long():
+    skip_time(SKIP_TIME_MEDIUM)
+
+def skip_forward_short():
+    skip_time(SKIP_TIME_SHORT)
+
+def mark_favourite(channel=0):
+    global favourited_log_string
+
+    logdata = get_fav_log_string(current_episode,current_track)
+    ep.setfavourite(current_episode,current_track,not(ep.favourite(current_episode,current_track)))
+    if favourited_log_string != None:
+        #if the current track has been un-favourited then take it off the log queue
+        #if there is another track on the queue then write it to the log file
+        if favourited_log_string != logdata:
+            log_favourited(favourited_log_string)
+        favourited_log_string = None
+    else:
+        if ep.favourite(current_episode,current_track):
+            favourited_log_string = logdata
+
+    show_favourite(ep.favourite(current_episode,current_track))
+
+
+def change_mode():
+    global play_mode
+    if play_mode == PLAY_MODE_DEFAULT:
+        debug("PLAY_MODE_FAV_ONLY")
+        play_mode = PLAY_MODE_FAV_ONLY
+    else:
+        debug("PLAY_MODE_DEFAULT")
+        play_mode = PLAY_MODE_DEFAULT
+
+
+def adjust_track_start():
+    msg = ep.adjust_track_start(current_episode, current_track, mp.time_pos)
+    debug(msg)
+
+def adjust_track_end():
+    msg = ep.adjust_track_end(current_episode, current_track, mp.time_pos)
+    debug(msg)
+
+def mute_unmute():
+    debug("current volume: "+str(mp.volume))
+    if mp.volume > 0:
+        mp.volume = 0
+    else:
+        # This doesn't work.
+        mp.volume = 99.5
+    debug("New volume: "+str(mp.volume))
+
+def toggle_debug_freeze():
+    global freeze_debug_display
+    freeze_debug_display = not(freeze_debug_display)
+
+def help():
+    for key in keys:
+        debug(str(key) + ": " + keys[key][0])
+
+def quit():
+    clean_up()
+    sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+ep.date(current_episode)+"\n"+
+             "Continue listening like this: "+ sys.argv[0] + " " + str(current_episode)+" "+str(current_track))
+
+def shutdown():
+    clean_up()
+    call(["sudo", "shutdown", "now", "-h", "-P"])
+
+
+
+###################################################
+
 
 
 class Event:
@@ -250,8 +407,9 @@ def track_nav(track_offset):
 
     try:
         if ep.validtrack(current_episode, target_track):
-            display(disp_str, str(current_track + track_offset) + " / " + str(ep.ntracks(current_episode)))
             current_track = target_track
+            display(disp_str, format_track_number(target_track) + " / " + 
+                str(ep.ntracks(current_episode)))
             mp.time_pos = ep.start(current_episode, current_track) 
         else:
             current_track = 0
@@ -263,26 +421,12 @@ def track_nav(track_offset):
 def skip_time(SKIP_TIME):
     global current_episode
     target_time = mp.time_pos + SKIP_TIME
-    if target_time > 0 and target_time < get_show_length(current_episode) - 2:
+    if target_time > 0 and target_time < get_episode_length(current_episode) - 2:
         mp.time_pos = target_time
     else:
-        debug(str(mp.time_pos) + " " + str(SKIP_TIME) + " " + str(get_show_length(current_episode)))
+        debug(str(mp.time_pos) + " " + str(SKIP_TIME) + " " + str(get_episode_length(current_episode)))
 
 
-def prev_episode(channel=0):
-    episode_nav(-1)
-
-def prev_track(channel=0):
-    track_nav(-1)
-
-def play_pause(channel=0):
-    play_pause()
-
-def next_track(channel=0):
-    track_nav(+1)
-
-def next_episode(channel=0):
-    episode_nav(+1)
 
 
 def get_fav_log_string(episode,track):
@@ -301,32 +445,14 @@ def get_fav_log_string(episode,track):
     return data
 
 
-def mark_favourite(channel=0):
-    global favourited_log_string
-
-    logdata = get_fav_log_string(current_episode,current_track)
-    ep.setfavourite(current_episode,current_track,not(ep.favourite(current_episode,current_track)))
-    if favourited_log_string != None:
-        #if the current track has been un-favourited then take it off the log queue
-        #if there is another track on the queue then write it to the log file
-        if favourited_log_string != logdata:
-            log_favourited(favourited_log_string)
-        favourited_log_string = None
-    else:
-        if ep.favourite(current_episode,current_track):
-            favourited_log_string = logdata
-
-    show_favourite(ep.favourite(current_episode,current_track))
 
 
 def update_position():
     global current_position, current_track
 
     if player_status == PAUSED:
-        #debug("Paused.")
         return True     #playing normally (not seeking), paused so don't ask for position
 
-    #debug("Not Paused.")
     pos = mp.time_pos
     
     #really hacky bit but it seems sometimes mplayer only responds every second call
@@ -339,7 +465,7 @@ def update_position():
 
         track_index = ep.ntracks(current_episode) - 1
         for i in range(ep.ntracks(current_episode)):
-            if ep.start(current_episode, i ) > pos:
+            if ep.start(current_episode, i) > round(current_position):
                 track_index = i - 1
                 break
 
@@ -348,6 +474,15 @@ def update_position():
         return True     #playing normally
     else:
         return False    #seeking
+
+
+###################################################
+# display and formatting functions                #
+###################################################
+
+# track numbers in the database start at zero but are displayed starting from 1.
+def format_track_number(track):
+    return str(track + 1)
 
 
 def strip_unprintable_characters(in_string):
@@ -366,9 +501,9 @@ def display(line1, line2):
     line1 = line1.ljust(LINEWIDTH, " ")
     line2 = line2.ljust(LINEWIDTH, " ")
  
-    if LCD:
-        #TODO screen code
-        pass
+    if lcd != None:
+        lcd.clear()
+        lcd.message(line1 + "\n" + line2)
         
     if SCREEN:
         line1 = line1.encode('utf-8')
@@ -389,7 +524,7 @@ def debug(msg, value=""):
         except:
             f.write("OOOPS"+"\n")
         f.close
-    if DEBUG and SCREEN:
+    if DEBUG and SCREEN and not(freeze_debug_display):
         text = msg
 
         if value != "":
@@ -418,7 +553,7 @@ def debug(msg, value=""):
 
 
 def play_episode(index):
-    global player_status, show_length, mplength
+    global player_status, episode_length, mplength
     
     episode_file = ep.filename(index)
 
@@ -436,10 +571,10 @@ def play_episode(index):
 
     display(line1, line2)
 
-    show_length = get_show_length(index)
+    episode_length = get_episode_length(index)
 
 
-def get_show_length(index):
+def get_episode_length(index):
     global ep, mplength
     if mplength == None:
         mplength = mp.length
@@ -449,8 +584,8 @@ def get_show_length(index):
     else:
         return mplength
     #sometimes mplayer doesn't report back length for a while.
-#    while(show_length == None):
-#        show_length = mp.length
+#    while(episode_length == None):
+#        episode_length = mp.length
 
 def check_and_fix_filename_sync_bug():
     global current_position, current_track, current_episode
@@ -476,23 +611,6 @@ def check_and_fix_filename_sync_bug():
         fix_filename_counter = 0
 
 
-def play_pause(normal):
-    global player_status
-
-#    debug("Player status in:  "+str(player_status)+" (pl=1, pau=2)")
-    if normal:
-        if player_status == PLAYING:
-            player_status = PAUSED
-        else:
-            player_status = PLAYING
-    else:
-        pass
-
-#    debug("Player status out: "+str(player_status))
-    mp.pause()
-# If play_pause is rapidly called twice, mp doesn't keep up, hence insert a delay.
-# This does cause a delay in the display too. A better way would be to check the time since this fn was last called.
-    time.sleep(0.2)
 
     
 def led(red, green, blue):
@@ -552,23 +670,6 @@ def show_favourite(favourite):
     else:
         led(0, 0, 0)
 
-def mute_unmute():
-    debug("current volume: "+str(mp.volume))
-    if mp.volume > 0:
-        mp.volume = 0
-    else:
-        # This doesn't work.
-        mp.volume = 99.5
-    debug("New volume: "+str(mp.volume))
-
-def change_mode():
-    global play_mode
-    if play_mode == PLAY_MODE_DEFAULT:
-        debug("PLAY_MODE_FAV_ONLY")
-        play_mode = PLAY_MODE_FAV_ONLY
-    else:
-        debug("PLAY_MODE_DEFAULT")
-        play_mode = PLAY_MODE_DEFAULT
 
 def seek_next_fav():
     global current_track, current_position
@@ -602,44 +703,13 @@ def seek_next_fav():
             time.sleep(1.0)
 
 def handle_keypress(c):
-#If you add keys, please also add them to '?'
-    if c == ord('z'):
-        prev_episode()
-    elif c == ord('x'):
-        prev_track()
-    elif c == ord(','):
-        skip_time(-SKIP_TIME_SHORT)
-    elif c == ord('<'):
-        skip_time(-SKIP_TIME_MEDIUM)
-    elif c == ord('c'):
-        play_pause(True)
-    elif c == ord('C'):
-        play_pause(False)
-        debug("Play/pause bug fix")
-    elif c == ord('v'):
-        next_track()
-    elif c == ord('b'):        
-        next_episode()
-    elif c == ord('>'):        
-        skip_time(SKIP_TIME_MEDIUM)
-    elif c == ord('.'):
-        skip_time(SKIP_TIME_SHORT)
-    elif c == ord('n'):
-        mark_favourite()
-    elif c == ord('m'):
-        change_mode()
-    elif c == ord('/'):
-        msg = ep.adjust_track_start(current_episode, current_track, mp.time_pos)
-        debug(msg)
-    elif c == ord('\\'):
-        msg = ep.adjust_track_end(current_episode, current_track, mp.time_pos)
-        debug(msg)
-    elif c == ord('V'):
-        mute_unmute()
-    elif c == ord('?'):
-        debug("z: prev ep; x: prev tr; c: play/pause; v: next tr; b: next ep; n: fav; V: mute; q: quit; ?: this help; C: play/pause bug fix\n<,>: back/forward some secs, /: adjust track startm \\: adjust track end, m: play mode")
-    elif c == ord('q'):
-        clean_up_and_exit()
+    global freeze_debug_display
+
+    key_char = chr(c)
+    if key_char in keys:
+        handler_function = keys[key_char][1]
+        handler_function()
+
 
 #Write a human readable log file of tracks that have been favourited.
 #Note: a track is deliberately not removed from the log file if later un-favourited. 
@@ -652,13 +722,13 @@ def log_favourited(data):
     f.close
 
 
-def play_and_display(launch_track):
-    global current_episode,stdscr, main_display, debug_display, favourited_log_string, show_length
+def episode_loop(launch_track):
+    global current_episode,stdscr, main_display, debug_display, favourited_log_string, episode_length
     global current_track, current_position
     global ep
 
     play_episode(current_episode)
-    show_length = get_show_length(current_episode)
+    episode_length = get_episode_length(current_episode)
 
     seeking = not(update_position())
     ticker_index = 0
@@ -672,10 +742,10 @@ def play_and_display(launch_track):
     led_state = 0
 
     # Added "-2" here because of "end of track" bug:
-    while(current_position < int(show_length) - 2):
+    while(current_position < int(episode_length) - 2):
 
         check_and_fix_filename_sync_bug()
-        show_length = get_show_length(current_episode)
+        episode_length = get_episode_length(current_episode)
         if launch_track > -1 and current_position > 0:
             current_track = launch_track
             launch_track = -1
@@ -744,7 +814,9 @@ def play_and_display(launch_track):
         display (line1, line2)
 
         if KEYBOARD:
-            handle_keypress(stdscr.getch())
+            key = stdscr.getch()
+            if key > 0:
+                handle_keypress(key)
             #TODO do I really need this? Why does the debug window blank after getch()?
             debug_display.refresh()
         else:
@@ -752,14 +824,12 @@ def play_and_display(launch_track):
             
         seeking = not(update_position())
     
-    debug("Showlength " + str(show_length) + " reached")
+    debug("Showlength " + str(episode_length) + " reached")
     current_position = 0
-    # Rather than quit, should go to previous episode...
-    # quit()
 
 
 def main_loop(screen):
-    global current_episode, stdscr, main_display, debug_display, favourited_log_string, show_length
+    global current_episode, stdscr, main_display, debug_display, favourited_log_string, episode_length
     # Surely needs: global current_track
     global current_track
     global ep, JB_DATABASE
@@ -806,12 +876,12 @@ def main_loop(screen):
     if (len(sys.argv) > 2):
         launch_track = int(sys.argv[2])
     while current_episode > -1 and current_episode < ep.nepisodes():
-        play_and_display(launch_track)
+        episode_loop(launch_track)
         launch_track = -1
         current_episode =  current_episode + PLAY_DIRECTION
 
 
-def clean_up_and_exit():
+def clean_up():
     global favourited_log_string
     global current_episode, current_track, current_position
 
@@ -825,11 +895,8 @@ def clean_up_and_exit():
         log_favourited(favourited_log_string)
         favourited_log_string = None
 
-    if BUTTONS or LED or LCD:
+    if BUTTON or LED or LCD:
         GPIO.cleanup()
-
-    sys.exit("JunctionBox exited normally.\nYou listened to: ep="+str(current_episode)+", tr="+str(current_track)+", pos="+format_time(current_position)+", date="+ep.date(current_episode)+"\n"+
-             "Continue listening like this: "+ sys.argv[0] + " " + str(current_episode)+" "+str(current_track))
 
 
 if __name__ == '__main__':    
@@ -842,7 +909,7 @@ if __name__ == '__main__':
         ep = EpisodeDatabase.EpisodeDatabase(JB_DATABASE)
         ep.apply_db_patch(sys.argv[2])
         sys.exit("Exitting normally after db operation.")
-    configure_LED_LCD_and_buttons()
+    configure_hardware()
     curses.wrapper(main_loop)
-    clean_up_and_exit()
+    quit()
 

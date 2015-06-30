@@ -2,10 +2,16 @@ TODO:
 
 (Done items are marked with a "/" at the begining of the line)
 
-Bug: Fix flashing of previous track in display when navigating
+    /Bug: Fix flashing of previous track in display when navigating
 
 Bug: fix "&amp;" etc in the display
     (see Tuesday 05-05-2015, track 15)
+
+Get LCD working
+
+Get buttons working (again)
+
+Get shutdown working
 
     /Bug: fix display bug that eats non ascii chars leaving the string too short
         GOT IT! Have to convert the UTF-8 strings read from the .p file into unicode to manipulate them then back in to UTF-8 to print them to the screen. eg. str.ljust(...) will pad incorrectly the UTF-8 string.
@@ -14,16 +20,12 @@ Bug: fix "&amp;" etc in the display
         (Can the LCD display unicode chars? Maybe we don't need to strip them if we can get curses to work too)
         (Needs further improvement - non-ascii display ok, but the string trimming doens't work well.)
 
-Get LCD working
 
 Feature: If time > 99 minutes, display is 100:1. Would like to see hours.
 
-/Segment loading needs discussing. There's performance implications by loading all segments at start, and
- give that segments are saved when favourties are made, this can easily lead to inconsistencies after a crash.
- B's suggestion is to load segment files when needed.
- This 'bug' has been addressed by implementing better access to the data through class Episodes_Database
+    /Segment loading needs discussing. There's performance implications by loading all segments at start, and give that segments are saved when favourties are made, this can easily lead to inconsistencies after a crash. B's suggestion is to load segment files when needed. This 'bug' has been addressed by implementing better access to the data through class Episodes_Database
 
-/Bug: When going back through say 5 episodes, sometimes the tracks displayed are from the previous episode. I.e. the
+    /Bug: When going back through say 5 episodes, sometimes the tracks displayed are from the previous episode. I.e. the
  episode playing is not the same as the one for which tracks are displayed.
  Put in a fix for the played file going out of sync with the file indicated by current_episode. Seems to be a problem with mp.loadfile not catching up.
  However: While the episode is seeking (in mplayer), it's possible to also seek for the track (in the display). But - when the track starts playing, it plays from beginning.

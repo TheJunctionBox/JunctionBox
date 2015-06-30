@@ -2,7 +2,7 @@ import curses
 import time
 
 utf8_string0 = 'Sigur Ros'
-utf8_string1 = 'Sigur R\xc3\xb3s'
+utf8_string1 = 'Sigur R\xc3\xb3s'\
 utf8_string2 = 'R\xc3\xb3s\xc3\xb3s\xc3\xb3s\xc3\xb3s'
 start_time = 1800
 
