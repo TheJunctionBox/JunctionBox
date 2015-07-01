@@ -97,22 +97,22 @@ def load_config():
         Config.read(configfile)
         if 'basic' in Config.sections():
             confitems = dict(Config.items('basic'))
-            if 'DEBUG' in confitems:
-                DEBUG = getboolean(confitems['DEBUG'])
-            if 'DEBUG_LOG' in confitems:
-                DEBUG_LOG = getboolean(confitems['DEBUG_LOG'])
-            if 'BUTTON' in confitems:
-                BUTTON = getboolean(confitems['BUTTONS'])
-            if 'LCD' in confitems:
-                LCD = getboolean(confitems['LCD'])
-            if 'LED' in confitems:
-                LED = getboolean(confitems['LED'])
-            if 'KEYBOARD' in confitems:
-                KEYBOARD = getboolean(confitems['KEYBOARD'])
-            if 'SCREEN' in confitems:
-                SCREEN = getboolean(confitems['SCREEN'])
-            if 'HIDE_CURSOR' in confitems:
-                HIDE_CURSOR = getboolean(confitems['HIDE_CURSOR'])
+            if 'debug' in confitems:
+                DEBUG = getboolean(confitems['debug'])
+            if 'debug_log' in confitems:
+                DEBUG_LOG = getboolean(confitems['debug_log'])
+            if 'button' in confitems:
+                BUTTON = getboolean(confitems['buttons'])
+            if 'lcd' in confitems:
+                LCD = getboolean(confitems['lcd'])
+            if 'led' in confitems:
+                LED = getboolean(confitems['led'])
+            if 'keyboard' in confitems:
+                KEYBOARD = getboolean(confitems['keyboard'])
+            if 'screen' in confitems:
+                SCREEN = getboolean(confitems['screen'])
+            if 'hide_cursor' in confitems:
+                HIDE_CURSOR = getboolean(confitems['hide_cursor'])
             if 'linewidth' in confitems:
                 LINEWIDTH = int(confitems['linewidth'])
             if 'displayheight' in confitems:
