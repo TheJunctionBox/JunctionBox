@@ -893,6 +893,9 @@ def clean_up():
         log_favourited(favourited_log_string)
         favourited_log_string = None
 
+    if LCD:
+        lcd.set_backlight(0)    #turn off backlight when shutting down
+
     if BUTTON or LED or LCD:
         import RPi.GPIO as GPIO
         GPIO.cleanup()

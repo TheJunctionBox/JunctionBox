@@ -7,7 +7,9 @@ TODO:
 Bug: fix "&amp;" etc in the display
     (see Tuesday 05-05-2015, track 15)
 
-Get LCD working
+    /Get LCD working
+
+Turn off LCD backlight when shutting down
 
 Get buttons working (again)
 
