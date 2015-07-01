@@ -612,6 +612,7 @@ def check_and_fix_filename_sync_bug():
     
 def led(red, green, blue):
     if LED:
+        import RPi.GPIO as GPIO
         GPIO.output(RED_PIN, 1 - red)
         GPIO.output(GREEN_PIN, 1 - green)
         GPIO.output(BLUE_PIN, 1 - blue)
@@ -893,6 +894,7 @@ def clean_up():
         favourited_log_string = None
 
     if BUTTON or LED or LCD:
+        import RPi.GPIO as GPIO
         GPIO.cleanup()
 
 
