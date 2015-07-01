@@ -1,16 +1,16 @@
 #example junctionbox config file
 [basic]
-#debug=False
-#debug_log=False
-#buttons=False
-#lcd=False
-#led=False
-#keyboard=True
-#screen=True
-#hide_cursor=True
+#DEBUG=False
+#DEBUG_LOG=False
+#BUTTON=False
+#LCD=False
+#LED=False
+#KEYBOARD=True
+#SCREEN=True
+#HIDE_CURSOR=True
 #linewidth=16
 #displayheight=2
-#unprintable_char=#
+#unprintable_char=+
 #data_directory=~/jb_data
 #fav_directory=~/jb_data
 #jb_database=~/jb_data/JB_DATABASE
