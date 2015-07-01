@@ -3,16 +3,14 @@
 import curses
 import time
 import os
-#import glob
-#import xml.etree.ElementTree as ET
 import re
-from subprocess import call
 import ConfigParser
-from os.path import expanduser
-import os.path
 import sys
 import string
 import shutil
+import os.path
+from os.path import expanduser
+from subprocess import call
 
 import mpylayer
 from unidecode import unidecode
@@ -68,7 +66,6 @@ play_mode = PLAY_MODE_DEFAULT
 current_episode = 0
 current_track = 0
 current_position = 0
-# episodes = []
 player_status = STOPPED
 stdscr = None
 main_display = None
@@ -101,21 +98,21 @@ def load_config():
         if 'basic' in Config.sections():
             confitems = dict(Config.items('basic'))
             if 'DEBUG' in confitems:
-                DEBUG = getboolean(confitems['debug'])
+                DEBUG = getboolean(confitems['DEBUG'])
             if 'DEBUG_LOG' in confitems:
-                DEBUG_LOG = getboolean(confitems['debug_log'])
+                DEBUG_LOG = getboolean(confitems['DEBUG_LOG'])
             if 'BUTTON' in confitems:
-                BUTTON = getboolean(confitems['buttons'])
+                BUTTON = getboolean(confitems['BUTTONS'])
             if 'LCD' in confitems:
-                LCD = getboolean(confitems['lcd'])
+                LCD = getboolean(confitems['LCD'])
             if 'LED' in confitems:
-                LED = getboolean(confitems['led'])
+                LED = getboolean(confitems['LED'])
             if 'KEYBOARD' in confitems:
-                KEYBOARD = getboolean(confitems['keyboard'])
+                KEYBOARD = getboolean(confitems['KEYBOARD'])
             if 'SCREEN' in confitems:
-                SCREEN = getboolean(confitems['screen'])
+                SCREEN = getboolean(confitems['SCREEN'])
             if 'HIDE_CURSOR' in confitems:
-                HIDE_CURSOR = getboolean(confitems['hide_cursor'])
+                HIDE_CURSOR = getboolean(confitems['HIDE_CURSOR'])
             if 'linewidth' in confitems:
                 LINEWIDTH = int(confitems['linewidth'])
             if 'displayheight' in confitems:
