@@ -1,13 +1,13 @@
 #example junctionbox config file
 [basic]
-#DEBUG=False
-#DEBUG_LOG=False
-#BUTTON=False
-#LCD=False
-#LED=False
-#KEYBOARD=True
-#SCREEN=True
-#HIDE_CURSOR=True
+#debug=False
+#debug_log=False
+#button=False
+#lcd=False
+#led=False
+#keyboard=True
+#screen=True
+#hide_cursor=True
 #linewidth=16
 #displayheight=2
 #unprintable_char=+
