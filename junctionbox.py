@@ -499,7 +499,7 @@ def display(line1, line2):
     line2 = line2.ljust(LINEWIDTH, " ")
  
     if lcd != None:
-        lcd.clear()
+        lcd.set_cursor(0,0)
         lcd.message(line1 + "\n" + line2)
         
     if SCREEN:
