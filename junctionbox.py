@@ -90,7 +90,7 @@ def getboolean(mystring):
 def load_config():
     global DEBUG, DEBUG_LOG, BUTTON, LCD, LED, KEYBOARD, SCREEN, HIDE_CURSOR, LINEWIDTH, \
         DISPLAYHEIGHT, UNPRINTABLE_CHAR, DATA_DIRECTORY, FAV_DIRECTORY, \
-        DIR_AND_FAVOURITED_LOG_FILE, JB_DATABASE
+        DIR_AND_FAVOURITED_LOG_FILE, JB_DATABASE, SHIELD_BUTTON
 
     # Check for configuration files
     configfile = os.path.join(expanduser("~"), ".junctionbox")
@@ -164,7 +164,7 @@ def load_config():
 
 
 def configure_hardware():
-    global keys, buttons
+    global keys, buttons, shield_buttons
 
     if KEYBOARD:
         #key definitions of the form:
@@ -222,11 +222,11 @@ def configure_hardware():
         lcd = Adafruit_CharLCD.Adafruit_CharLCDPlate()
 
     if SHIELD_BUTTON:
-        shield_buttons = [ [LCD.SELECT, shutdown]
-                           [LCD.LEFT, prev_track]
-                           [LCD.UP, mark_favourite]
-                           [LCD.DOWN, toggle_pause]
-                           [LCD.RIGHT, next_track]
+        shield_buttons = [ [Adafruit_CharLCD.SELECT, shutdown],
+                           [Adafruit_CharLCD.LEFT, prev_track],
+                           [Adafruit_CharLCD.UP, mark_favourite],
+                           [Adafruit_CharLCD.DOWN, toggle_pause],
+                           [Adafruit_CharLCD.RIGHT, next_track]
                          ]
 
     if LED:
@@ -825,6 +825,8 @@ def episode_loop(launch_track):
         line2 = line2[0:LINEWIDTH-2].ljust(LINEWIDTH-2, " ") + " " + status
         
         display (line1, line2)
+
+        debug("shield_button", str(SHIELD_BUTTON))
 
         if SHIELD_BUTTON:
             #see if a shield button is pressed
