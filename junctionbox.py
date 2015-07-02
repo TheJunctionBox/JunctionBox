@@ -31,6 +31,7 @@ JB_DATABASE = os.path.join(DATA_DIRECTORY, "JB_DATABASE" )
 FAVOURITED_LOG_FILE = "favourited.txt"
 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
 
+SHIELD_BUTTON = False    #set to True if the lcd shield buttons are present
 BUTTON =   False         #set to True if buttons are present
 LCD =      False         #set to True if there is an LCD screen present
 LED =      False         #set to True if there is an RGB LED present
@@ -42,6 +43,7 @@ DISPLAYHEIGHT = 2        # Lines available on display
 LCD_EMULATION = True     # If true the screen (monitor) will emulate the LCD display
 keys = {}                # Keyboard keys used and their methods
 buttons = []             # Hardware buttons used and their methods
+shield_buttons = {}      # Shield buttons used and their methods
 
 #Navigation options (not in .junctionbox yet)
 SKIP_TIME_MEDIUM = 60
@@ -186,7 +188,9 @@ def configure_hardware():
                 '?':["help", help]}
 
 
-    if BUTTON or LED or LCD:
+    if BUTTON or LED or LCD or SHIELD_BUTTON:
+        """Can only import RPi.GPIO on supported hardware (eg. raspberrypi).
+        Trying to import on any other platform causes an error."""
         import RPi.GPIO as GPIO
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -199,15 +203,29 @@ def configure_hardware():
                     [6, toggle_pause],
                     [7, next_track],
                     [8, next_episode],
-                    [12, mark_favourite],
-                    [None, shutdown]
+                    [12, mark_favourite]
                   ]
 
+        for button in buttons():
+            GPIO.setup(button[0], GPIO.IN, pull_up_down = GPIO.PUD_UP)
+            GPIO.add_event_detect(button[0], GPIO.FALLING, 
+                                  callback=button[1], bouncetime=300)
+
+
     if LCD:
+        """Can only import Adafruit_CharLCD on supported hardware as it depends
+        on RPi.GPIO""" 
         global lcd
         import Adafruit_CharLCD
         lcd = Adafruit_CharLCD.Adafruit_CharLCDPlate()
 
+    if SHIELD_BUTTON:
+        shield_buttons = [ [LCD.SELECT, shutdown]
+                           [LCD.LEFT, prev_track]
+                           [LCD.UP, mark_favourite]
+                           [LCD.DOWN, toggle_pause]
+                           [LCD.RIGHT, next_track]
+                         ]
 
     if LED:
         RED_PIN = 17
@@ -218,11 +236,6 @@ def configure_hardware():
         GPIO.setup(GREEN_PIN, GPIO.OUT)     #green
         GPIO.setup(BLUE_PIN, GPIO.OUT)      #blue
 
-    if BUTTON:
-        for button in buttons():
-            GPIO.setup(button[0], GPIO.IN, pull_up_down = GPIO.PUD_UP)
-            GPIO.add_event_detect(button[0], GPIO.FALLING, 
-                                  callback=button[1], bouncetime=300)
 
 
 ###################################################
@@ -811,14 +824,20 @@ def episode_loop(launch_track):
         
         display (line1, line2)
 
+        if SHIELD_BUTTON:
+            #see if a shield button is pressed
+            for button in shield_buttons:
+                if lcd.is_pressed(button[0]):
+                    button[1]()  #call the associated handler
+
         if KEYBOARD:
             key = stdscr.getch()
             if key > 0:
                 handle_keypress(key)
             #TODO do I really need this? Why does the debug window blank after getch()?
             debug_display.refresh()
-        else:
-            time.sleep(0.4)
+
+        time.sleep(0.4)
             
         seeking = not(update_position())
     
@@ -846,7 +865,8 @@ def main_loop(screen):
         except:
             debug("Cannot hide cursor.")
     
-    curses.halfdelay(4)
+    stdscr.nodelay(1)
+    #curses.halfdelay(4)
     curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
     curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(4, curses.COLOR_BLUE, curses.COLOR_BLACK)
@@ -894,9 +914,11 @@ def clean_up():
         favourited_log_string = None
 
     if LCD:
-        lcd.set_backlight(0)    #turn off backlight when shutting down
+        #clear and turn off backlight when shutting down
+        lcd.clear()
+        lcd.set_backlight(0)    
 
-    if BUTTON or LED or LCD:
+    if BUTTON or LED or LCD or SHIELD_BUTTON:
         import RPi.GPIO as GPIO
         GPIO.cleanup()
 

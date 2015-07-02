@@ -9,11 +9,34 @@ Bug: fix "&amp;" etc in the display
 
     /Get LCD working
 
-Turn off LCD backlight when shutting down
+    /Turn off LCD backlight when shutting down
 
-Get buttons working (again)
+Implement shield buttons 
 
-Get shutdown working
+Fast boot
+
+Implement an advanced 5 button design, 
+    eg: 
+    SELECT      = play/pause
+    SELECT hold = shutdown
+    LEFT        = previous track / episode / show
+    UP          = up a navigation level
+    UP hold     = toggle favourite
+    DOWN        = down a navigation level
+    RIGHT       = next track / episode / show
+
+    requires:
+      modal display (show nav / episode nav / track nav)
+      timed UI for held buttons
+
+
+Bug: "Pause bug" is back: When paused, occasionally audio plays. Investigated: Seems to be problem with mpylayer, suggested fix: stop playback after paused for > 10 secs and remember location. 
+
+
+
+Get other buttons working (again)
+
+    /Get shutdown working
 
     /Bug: fix display bug that eats non ascii chars leaving the string too short
         GOT IT! Have to convert the UTF-8 strings read from the .p file into unicode to manipulate them then back in to UTF-8 to print them to the screen. eg. str.ljust(...) will pad incorrectly the UTF-8 string.
@@ -32,7 +55,6 @@ Feature: If time > 99 minutes, display is 100:1. Would like to see hours.
  Put in a fix for the played file going out of sync with the file indicated by current_episode. Seems to be a problem with mp.loadfile not catching up.
  However: While the episode is seeking (in mplayer), it's possible to also seek for the track (in the display). But - when the track starts playing, it plays from beginning.
 
-Bug: "Pause bug" is back: When paused, occasionally audio plays. Investigated: Seems to be problem with mpylayer
 
 Bug: "Track seeking". Intermittent. When you press vvv or more, sometimes the seeking doesn't stop, but the time keeps flicking forward in say 5 s increments.
 
@@ -51,18 +73,16 @@ Factor out EPISODE_DIRECTORY (just use DATA_DIRECTORY and search for sub-directo
       so that you can choose one.
   This has been partially addressed by EPISODE_DIRECTORY_LIST that allows loading of several directories.
 
-/ Tidy up the superfluous code in "lj_download_segments"
+    / Tidy up the superfluous code in "lj_download_segments"
 
-/Add performers to data extracted from Late Junction XML
+    /Add performers to data extracted from Late Junction XML
     B: Data extraction needs re-doing anyway, as current regexp doesn't always work.
 
-/Add performer data to the exported favourited file
+    /Add performer data to the exported favourited file
 
-Export favourites
-  B: Is this still current? The dumppatch option allows exporting favourites as json.
+Export favourites to human readable text file
 
-Save location when quitting on pause
-  B:  The current ep/track is printed on quit.
+Save location when quitting on pause, so player resumes from last location 
 
 Create "heard" field and persist
 
@@ -77,9 +97,13 @@ create a while True main loop (around the current while loop)
 
 How can I see what episode I'm in?
 
+Sort out where all the files should live on the rpi (/root ?)
+
 
 UNPRIORITISED IDEAS:
 ====================
+
+A web interface to see episodes, tracks and favourites and to control playback. 
 
 /B: As a suggestion, the tracks data (pickle dump .p files) might be better stored/persisted on disk in json or XML, to allow easier manual adding/editing of tracks. 
    This was done as part of various other improvements
