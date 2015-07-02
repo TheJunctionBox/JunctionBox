@@ -104,7 +104,9 @@ def load_config():
             if 'debug_log' in confitems:
                 DEBUG_LOG = getboolean(confitems['debug_log'])
             if 'button' in confitems:
-                BUTTON = getboolean(confitems['buttons'])
+                BUTTON = getboolean(confitems['button'])
+            if 'shield_button' in confitems:
+                SHIELD_BUTTON = getboolean(confitems['shield_button'])                
             if 'lcd' in confitems:
                 LCD = getboolean(confitems['lcd'])
             if 'led' in confitems:
