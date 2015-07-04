@@ -30,6 +30,9 @@ EPISODE_DIRECTORY = os.path.join(DATA_DIRECTORY, "Late_Junction")
 JB_DATABASE = os.path.join(DATA_DIRECTORY, "JB_DATABASE" )
 FAVOURITED_LOG_FILE = "favourited.txt"
 DIR_AND_FAVOURITED_LOG_FILE = (os.path.join(FAV_DIRECTORY, FAVOURITED_LOG_FILE ))
+DISPLAY_REFRESH_TIME = 0.4        #the refresh cycle time for the display in seconds
+BUTTON_HOLD_TIME = 1.5            #the time a button must be held down to be considered "held"
+BUTTON_DEBOUNCE_TIME = 0.1        #delay before retriggering button press to debounce buttons
 
 SHIELD_BUTTON = False    #set to True if the lcd shield buttons are present
 BUTTON =   False         #set to True if buttons are present
@@ -222,11 +225,13 @@ def configure_hardware():
         lcd = Adafruit_CharLCD.Adafruit_CharLCDPlate()
 
     if SHIELD_BUTTON:
-        shield_buttons = [ [Adafruit_CharLCD.SELECT, shutdown],
-                           [Adafruit_CharLCD.LEFT, prev_track],
-                           [Adafruit_CharLCD.UP, mark_favourite],
-                           [Adafruit_CharLCD.DOWN, toggle_pause],
-                           [Adafruit_CharLCD.RIGHT, next_track]
+        #shield button definitions of the form:
+        #[button_code, function, held_function]
+        shield_buttons = [ [Adafruit_CharLCD.SELECT, toggle_pause, shutdown],
+                           [Adafruit_CharLCD.LEFT, prev_track, None],
+                           [Adafruit_CharLCD.UP, prev_episode, mark_favourite],
+                           [Adafruit_CharLCD.DOWN, next_episode, None],
+                           [Adafruit_CharLCD.RIGHT, next_track, None]
                          ]
 
     if LED:
@@ -527,6 +532,66 @@ def display(line1, line2):
         main_display.refresh()
 
 
+def led(red, green, blue):
+    if LED:
+        import RPi.GPIO as GPIO
+        GPIO.output(RED_PIN, 1 - red)
+        GPIO.output(GREEN_PIN, 1 - green)
+        GPIO.output(BLUE_PIN, 1 - blue)
+
+    elif SCREEN:    #simulate LED on the screen
+
+        colour = red + green * 2 + blue * 4
+        if colour == 0:
+            char = " "
+        else:
+            char = "*"    
+        stdscr.addstr(0, 22, char, curses.color_pair(colour))
+
+    else:
+        #TODO show LED status on the LCD somehow
+        pass
+
+
+
+class Scroller:
+    def __init__(self, left_text, centre_text, right_text, line_size=LINEWIDTH):
+        self.left_text = left_text
+        self.centre_text = centre_text
+        self.right_text = right_text
+        self.line_size = line_size
+        self.i = 0                  #scrolling index
+        self.centre_space = self.line_size - len(self.left_text) - len(self.right_text)
+
+    def scroll(self):
+        if len(self.centre_text) > self.centre_space:
+            self.centre = (self.centre_text[self.i:self.i+self.centre_space] +
+                       ".  "[max(0, self.i-len(self.centre_text)):max(0,self.i + self.centre_space - len(self.centre_text))] +
+                       self.centre_text[0:max(0, self.i - (len(self.centre_text) - self.centre_space) - 2)])
+                       
+            self.i = (self.i + 1) % (len(self.centre_text) + 3)
+        else:
+            self.centre = self.centre_text.ljust(self.centre_space, " ")
+
+        return self.left_text + self.centre + self.right_text
+
+
+def format_time(seconds):
+    if (seconds == -1):
+        return "--:--"
+    seconds = int(seconds)
+    secs = seconds % 60
+    mins = (seconds - secs) / 60
+    return str(mins).rjust(2, "0") + ":" + str(secs).rjust(2, "0")
+
+
+def show_favourite(favourite):
+    if favourite:
+        led(1, 0, 1)
+    else:
+        led(0, 0, 0)
+
+
 def debug(msg, value=""):
     if DEBUG_LOG:
         f = open("logfile.txt","a")
@@ -563,6 +628,8 @@ def debug(msg, value=""):
             # if debug_display doesn't (yet) exist, just print to stdout
             print text
 
+
+###################################################
 
 def play_episode(index):
     global player_status, episode_length, mplength
@@ -621,67 +688,6 @@ def check_and_fix_filename_sync_bug():
             # debug("Current track while seeking: " + str(current_track))
     else:
         fix_filename_counter = 0
-
-
-
-    
-def led(red, green, blue):
-    if LED:
-        import RPi.GPIO as GPIO
-        GPIO.output(RED_PIN, 1 - red)
-        GPIO.output(GREEN_PIN, 1 - green)
-        GPIO.output(BLUE_PIN, 1 - blue)
-
-    elif SCREEN:    #simulate LED on the screen
-
-        colour = red + green * 2 + blue * 4
-        if colour == 0:
-            char = " "
-        else:
-            char = "*"    
-        stdscr.addstr(0, 22, char, curses.color_pair(colour))
-
-    else:
-        #TODO show LED status on the LCD somehow
-        pass
-
-
-class Scroller:
-    def __init__(self, left_text, centre_text, right_text, line_size=LINEWIDTH):
-        self.left_text = left_text
-        self.centre_text = centre_text
-        self.right_text = right_text
-        self.line_size = line_size
-        self.i = 0                  #scrolling index
-        self.centre_space = self.line_size - len(self.left_text) - len(self.right_text)
-
-    def scroll(self):
-        if len(self.centre_text) > self.centre_space:
-            self.centre = (self.centre_text[self.i:self.i+self.centre_space] +
-                       ".  "[max(0, self.i-len(self.centre_text)):max(0,self.i + self.centre_space - len(self.centre_text))] +
-                       self.centre_text[0:max(0, self.i - (len(self.centre_text) - self.centre_space) - 2)])
-                       
-            self.i = (self.i + 1) % (len(self.centre_text) + 3)
-        else:
-            self.centre = self.centre_text.ljust(self.centre_space, " ")
-
-        return self.left_text + self.centre + self.right_text
-
-
-def format_time(seconds):
-    if (seconds == -1):
-        return "--:--"
-    seconds = int(seconds)
-    secs = seconds % 60
-    mins = (seconds - secs) / 60
-    return str(mins).rjust(2, "0") + ":" + str(secs).rjust(2, "0")
-
-
-def show_favourite(favourite):
-    if favourite:
-        led(1, 0, 1)
-    else:
-        led(0, 0, 0)
 
 
 def seek_next_fav():
@@ -782,13 +788,14 @@ def episode_loop(launch_track):
             else:
                 track_name = ep.tracktitle(current_episode,current_track)
                 artist = ep.trackartist(current_episode,current_track)
-                track_no  = str(current_track + 1) + " "
-                try:
-                    scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)                
-                    scroller2 = Scroller(track_no, track_name, "  ", line_size=LINEWIDTH)
-                except:
-                    debug("Episode change / track change: Error setting track. current_track="+str(current_track)+", current_episode"+
-                          str(current_episode)+", ep.ntracks="+str(ep.ntracks(current_episode)))
+                track_no = str(current_track + 1)
+                track_prefix  = track_no + " "
+                if ep.favourite(current_episode, current_track):
+                    track_prefix = track_no + "* "
+
+                scroller1 = Scroller("", artist, "      ", line_size=LINEWIDTH)                
+                scroller2 = Scroller(track_prefix, track_name, "  ", line_size=LINEWIDTH)
+
                 try:
                    debug("- Playing track " + str(track_no) + ", in ep=" + str(current_episode)  +  " (" + track_name  + ") "
                           + format_time(ep.start(current_episode,current_track)) + ep.starttype(current_episode,current_track)  
@@ -826,13 +833,6 @@ def episode_loop(launch_track):
         
         display (line1, line2)
 
-        debug("shield_button", str(SHIELD_BUTTON))
-
-        if SHIELD_BUTTON:
-            #see if a shield button is pressed
-            for button in shield_buttons:
-                if lcd.is_pressed(button[0]):
-                    button[1]()  #call the associated handler
 
         if KEYBOARD:
             key = stdscr.getch()
@@ -841,7 +841,40 @@ def episode_loop(launch_track):
             #TODO do I really need this? Why does the debug window blank after getch()?
             debug_display.refresh()
 
-        time.sleep(0.4)
+        if SHIELD_BUTTON:
+            #Shield buttons are not buffered so if shield buttons are enabled checking them
+            #is put inside the main idle process. 
+            idle_start = time.time()
+            while time.time() - idle_start < DISPLAY_REFRESH_TIME:
+                for button in shield_buttons:
+                    if lcd.is_pressed(button[0]):
+                        button_start = time.time()
+                        button_held_time = 0
+                        debug("shield button pressed" + str(button[0]))
+                        
+                        #wait to see if the button is "held" or not
+                        while lcd.is_pressed(button[0]) and button_held_time < BUTTON_HOLD_TIME:
+                            button_held_time = time.time() - button_start
+                        
+                        if button_held_time > BUTTON_HOLD_TIME:
+                            function = button[2]    #get the held button handler function
+                        else:
+                            function = button[1]    #get the normal button handler function
+                            
+                        if callable(function):
+                            function()
+                        
+                        #if the button is still pressed wait until it is released
+                        while lcd.is_pressed(button[0]):
+                            pass
+                            
+                        #debounce button
+                        while time.time() - button_start < BUTTON_DEBOUNCE_TIME:
+                            pass
+                        
+
+        else:
+            time.sleep(DISPLAY_REFRESH_TIME)
             
         seeking = not(update_position())
     
