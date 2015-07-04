@@ -847,30 +847,33 @@ def episode_loop(launch_track):
             idle_start = time.time()
             while time.time() - idle_start < DISPLAY_REFRESH_TIME:
                 for button in shield_buttons:
-                    if lcd.is_pressed(button[0]):
-                        button_start = time.time()
-                        button_held_time = 0
-                        debug("shield button pressed" + str(button[0]))
+                    try:
+                        if lcd.is_pressed(button[0]):
+                            button_start = time.time()
+                            button_held_time = 0
+                            debug("shield button pressed" + str(button[0]))
                         
-                        #wait to see if the button is "held" or not
-                        while lcd.is_pressed(button[0]) and button_held_time < BUTTON_HOLD_TIME:
-                            button_held_time = time.time() - button_start
+                            #wait to see if the button is "held" or not
+                            while lcd.is_pressed(button[0]) and button_held_time < BUTTON_HOLD_TIME:
+                                button_held_time = time.time() - button_start
                         
-                        if button_held_time > BUTTON_HOLD_TIME:
-                            function = button[2]    #get the held button handler function
-                        else:
-                            function = button[1]    #get the normal button handler function
+                            if button_held_time > BUTTON_HOLD_TIME:
+                                function = button[2]    #get the held button handler function
+                            else:
+                                function = button[1]    #get the normal button handler function
                             
-                        if callable(function):
-                            function()
+                            if callable(function):
+                                function()
                         
-                        #if the button is still pressed wait until it is released
-                        while lcd.is_pressed(button[0]):
-                            pass
+                            #if the button is still pressed wait until it is released
+                            while lcd.is_pressed(button[0]):
+                                pass
                             
-                        #debounce button
-                        while time.time() - button_start < BUTTON_DEBOUNCE_TIME:
-                            pass
+                            #debounce button
+                            while time.time() - button_start < BUTTON_DEBOUNCE_TIME:
+                                pass
+                    except:
+                        debug("error while checking shield buttons")
                         
 
         else:
