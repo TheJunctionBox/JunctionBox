@@ -519,8 +519,11 @@ def display(line1, line2):
     line2 = line2.ljust(LINEWIDTH, " ")
  
     if lcd != None:
-        lcd.set_cursor(0,0)
-        lcd.message(line1 + "\n" + line2)
+        try:
+            lcd.set_cursor(0,0)
+            lcd.message(line1 + "\n" + line2)
+        except:
+            debug("error writing to LCD")
         
     if SCREEN:
         line1 = line1.encode('utf-8')
