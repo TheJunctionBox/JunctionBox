@@ -253,7 +253,8 @@ def prev_episode(channel=0):
     episode_nav(-1)
 
 def prev_track(channel=0):
-    track_nav(-1)
+    if current_track > -1:
+        track_nav(-1)
 
 def skip_back_short():
     skip_time(-SKIP_TIME_SHORT)
@@ -285,7 +286,8 @@ def fix_pause():
     time.sleep(0.2)
 
 def next_track(channel=0):
-    track_nav(+1)
+    if current_track < ep.ntracks(current_episode) - 1:
+        track_nav(+1)
 
 def next_episode(channel=0):
     episode_nav(+1)
@@ -414,15 +416,15 @@ def track_nav(track_offset):
 
     if (track_offset > 0):
         disp_str = ">>"
+    elif (track_offset < 0):
+        disp_str = "<<"
     else:
-        if (track_offset < 0):
-            disp_str = "<<"
-        else:
-            disp_str = "><"
+        disp_str = "><"
 
     target_track = current_track + track_offset
-
+        
     try:
+
         if ep.validtrack(current_episode, target_track):
             current_track = target_track
             display(disp_str, format_track_number(target_track) + " / " + 
@@ -580,12 +582,30 @@ class Scroller:
 
 
 def format_time(seconds):
-    if (seconds == -1):
+    """Formats seconds into a time string of the form:
+       mm:ss
+       If seconds is large enough it will return:
+       hours:mm:ss,  days:hours:mm:ss
+    """
+
+    if(seconds == None or seconds < 0):
         return "--:--"
+
     seconds = int(seconds)
     secs = seconds % 60
-    mins = (seconds - secs) / 60
-    return str(mins).rjust(2, "0") + ":" + str(secs).rjust(2, "0")
+    mins = int(seconds / 60) % 60
+    hrs = int(seconds / 3600) % 24
+    days = int(seconds / 86400)
+
+    time_str = str(mins).rjust(2, "0") + ":" + str(secs).rjust(2, "0")
+
+    if days > 0:
+        time_str = str(days) + ":" + str(hrs).rjust(2, "0") + ":" + time_str
+    else:
+        if hrs > 0:
+            time_str = str(hrs) + ":" + time_str
+
+    return time_str
 
 
 def show_favourite(favourite):
@@ -831,8 +851,10 @@ def episode_loop(launch_track):
 
         time_str = format_time(current_position)
 
-        line1 = line1[0:LINEWIDTH-6].ljust(LINEWIDTH-6, " ") + " " + time_str
-        line2 = line2[0:LINEWIDTH-2].ljust(LINEWIDTH-2, " ") + " " + status
+        line1_len = LINEWIDTH - len(time_str) - 1
+        line2_len = LINEWIDTH - len(status) - 1
+        line1 = line1[0:line1_len].ljust(line1_len, " ") + " " + time_str
+        line2 = line2[0:line2_len].ljust(line2_len, " ") + " " + status
         
         display (line1, line2)
 

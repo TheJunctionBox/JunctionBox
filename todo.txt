@@ -11,7 +11,7 @@ Bug: fix "&amp;" etc in the display
 
     /Turn off LCD backlight when shutting down
 
-Implement shield buttons 
+    /Implement shield buttons 
 
 Fast boot
 
@@ -27,12 +27,20 @@ Implement an advanced 5 button design,
 
     requires:
       modal display (show nav / episode nav / track nav)
-      timed UI for held buttons
+        /timed UI for held buttons
 
+Improve reliability of shield buttons (create a listening thread?)
 
 Bug: "Pause bug" is back: When paused, occasionally audio plays. Investigated: Seems to be problem with mpylayer, suggested fix: stop playback after paused for > 10 secs and remember location. 
 
+Refactor to create an "indexed player"
 
+Refactor DB to create a simple file based DB containing:
+    media file  (myfile.m4a)
+    media index file  (myfile.idx)  - a list of songs / indexes
+    media data file (myfile.dat)    - data used by junctionbox, eg the "heard" count, favourited flag
+
+Refactor: make ep and current_track 0 based (rather than starting at -1 for the header)
 
 Get other buttons working (again)
 
@@ -46,7 +54,7 @@ Get other buttons working (again)
         (Needs further improvement - non-ascii display ok, but the string trimming doens't work well.)
 
 
-Feature: If time > 99 minutes, display is 100:1. Would like to see hours.
+    /Feature: If time > 99 minutes, display is 100:1. Would like to see hours.
 
     /Segment loading needs discussing. There's performance implications by loading all segments at start, and give that segments are saved when favourties are made, this can easily lead to inconsistencies after a crash. B's suggestion is to load segment files when needed. This 'bug' has been addressed by implementing better access to the data through class Episodes_Database
 
