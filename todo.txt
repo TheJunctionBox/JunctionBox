@@ -7,7 +7,6 @@ Bug: fix "&amp;" etc in the display
 
 Bug: "Track seeking". Intermittent. When you press vvv or more, sometimes the seeking doesn't stop, but the time keeps flicking forward in say 5 s increments. (Can't replicate)
 
-
 Fast boot (on rpi)
 
 How can I see what episode I'm in?
